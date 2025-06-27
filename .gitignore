@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+
+# Flutter
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.dart_tool/
+
+# Elixir
+/deps/
+/_build/
+/cover/
+erl_crash.dump
+.elixir_ls/
+
+# Rust
+/target/
+
+# IDEs
+.idea/
+.vscode/
