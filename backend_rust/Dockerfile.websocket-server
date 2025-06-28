@@ -1,0 +1,55 @@
+# Multi-stage build for WebSocket server
+FROM rust:1.75-slim as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy workspace configuration
+COPY Cargo.toml Cargo.lock ./
+
+# Copy source code
+COPY shared/ ./shared/
+COPY websocket-server/ ./websocket-server/
+
+# Build the application
+RUN cargo build --release --bin websocket-server
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app user
+RUN useradd -r -s /bin/false appuser
+
+# Create app directory
+WORKDIR /app
+
+# Copy the binary from builder stage
+COPY --from=builder /app/target/release/websocket-server ./websocket-server
+
+# Change ownership
+RUN chown -R appuser:appuser /app
+
+# Switch to app user
+USER appuser
+
+# Expose port
+EXPOSE 8081
+
+# Health check (basic connection test)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD timeout 3 bash -c "</dev/tcp/localhost/8081" || exit 1
+
+# Run the application
+CMD ["./websocket-server"]
