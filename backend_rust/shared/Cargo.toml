@@ -1,0 +1,21 @@
+[package]
+name = "shared"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Re-export workspace dependencies for use by other crates
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+jsonwebtoken = { workspace = true }
+redis = { workspace = true }
+sqlx = { workspace = true }
+config = { workspace = true }
+
+# Additional dependencies for shared utilities
+rand = "0.8"
