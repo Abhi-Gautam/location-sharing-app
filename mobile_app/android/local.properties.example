@@ -1,0 +1,11 @@
+# Flutter SDK path
+flutter.sdk=/path/to/flutter
+
+# Google Maps API Key for Android
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
+
+# Android SDK path (usually set automatically by Android Studio)
+sdk.dir=/path/to/android/sdk
+
+# NDK path (if needed)
+ndk.dir=/path/to/android/ndk

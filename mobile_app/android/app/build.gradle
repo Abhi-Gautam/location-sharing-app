@@ -1,0 +1,172 @@
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterRoot = localProperties.getProperty('flutter.sdk')
+if (flutterRoot == null) {
+    throw new GradleException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
+}
+
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
+if (flutterVersionCode == null) {
+    flutterVersionCode = '1'
+}
+
+def flutterVersionName = localProperties.getProperty('flutter.versionName')
+if (flutterVersionName == null) {
+    flutterVersionName = '1.0'
+}
+
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
+
+// Load Google Maps API key from environment or local.properties
+def googleMapsApiKey = localProperties.getProperty('GOOGLE_MAPS_API_KEY') ?: System.getenv('GOOGLE_MAPS_API_KEY') ?: ''
+
+android {
+    compileSdkVersion 34
+    ndkVersion flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    defaultConfig {
+        applicationId "com.locationsharing.app"
+        minSdkVersion 21
+        targetSdkVersion 34
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+        
+        // Pass Google Maps API key to manifest
+        manifestPlaceholders = [
+            GOOGLE_MAPS_API_KEY: googleMapsApiKey
+        ]
+    }
+
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+        release {
+            // For production releases, configure proper signing
+            // storeFile file('release.keystore')
+            // storePassword System.getenv('KEYSTORE_PASSWORD')
+            // keyAlias System.getenv('KEY_ALIAS')
+            // keyPassword System.getenv('KEY_PASSWORD')
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+            applicationIdSuffix ".debug"
+            debuggable true
+            
+            buildConfigField "String", "BACKEND_TYPE", "\"elixir\""
+            buildConfigField "String", "API_BASE_URL", "\"http://10.0.2.2:4000/api\""
+            buildConfigField "String", "WS_BASE_URL", "\"ws://10.0.2.2:4000/socket/websocket\""
+            
+            resValue "string", "app_name", "Location Sharing (Debug)"
+        }
+        
+        profile {
+            signingConfig signingConfigs.debug
+            applicationIdSuffix ".profile"
+            
+            buildConfigField "String", "BACKEND_TYPE", "\"elixir\""
+            buildConfigField "String", "API_BASE_URL", "\"http://10.0.2.2:4000/api\""
+            buildConfigField "String", "WS_BASE_URL", "\"ws://10.0.2.2:4000/socket/websocket\""
+            
+            resValue "string", "app_name", "Location Sharing (Profile)"
+        }
+        
+        release {
+            // signingConfig signingConfigs.release
+            signingConfig signingConfigs.debug // Use debug for now
+            
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            
+            buildConfigField "String", "BACKEND_TYPE", "\"elixir\""
+            buildConfigField "String", "API_BASE_URL", "\"https://api.locationsharing.com/api\""
+            buildConfigField "String", "WS_BASE_URL", "\"wss://api.locationsharing.com/socket/websocket\""
+            
+            resValue "string", "app_name", "Location Sharing"
+        }
+    }
+
+    flavorDimensions "environment"
+    productFlavors {
+        dev {
+            dimension "environment"
+            applicationIdSuffix ".dev"
+            versionNameSuffix "-dev"
+            
+            buildConfigField "String", "BACKEND_TYPE", "\"elixir\""
+            buildConfigField "String", "API_BASE_URL", "\"http://10.0.2.2:4000/api\""
+            buildConfigField "String", "WS_BASE_URL", "\"ws://10.0.2.2:4000/socket/websocket\""
+        }
+        
+        staging {
+            dimension "environment"
+            applicationIdSuffix ".staging"
+            versionNameSuffix "-staging"
+            
+            buildConfigField "String", "BACKEND_TYPE", "\"elixir\""
+            buildConfigField "String", "API_BASE_URL", "\"https://staging.locationsharing.com/api\""
+            buildConfigField "String", "WS_BASE_URL", "\"wss://staging.locationsharing.com/socket/websocket\""
+        }
+        
+        prod {
+            dimension "environment"
+            
+            buildConfigField "String", "BACKEND_TYPE", "\"elixir\""
+            buildConfigField "String", "API_BASE_URL", "\"https://api.locationsharing.com/api\""
+            buildConfigField "String", "WS_BASE_URL", "\"wss://api.locationsharing.com/socket/websocket\""
+        }
+    }
+    
+    packagingOptions {
+        pickFirst '**/libc++_shared.so'
+        pickFirst '**/libjsc.so'
+    }
+}
+
+flutter {
+    source '../..'
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    
+    // Google Play Services for Maps and Location
+    implementation 'com.google.android.gms:play-services-maps:18.2.0'
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
+    
+    // AndroidX dependencies
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+    implementation 'androidx.work:work-runtime-ktx:2.9.0'
+    
+    // For foreground services
+    implementation 'androidx.core:core:1.12.0'
+}
