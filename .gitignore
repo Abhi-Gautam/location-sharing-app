@@ -17,7 +17,7 @@ erl_crash.dump
 .elixir_ls/
 
 # Rust
-/target/
+target/
 
 # IDEs
 .idea/
