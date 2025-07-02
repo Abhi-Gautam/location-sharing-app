@@ -26,3 +26,6 @@ target/
 *.log
 api_server.log
 websocket_server.log
+
+# Claude Code user settings
+.claude/
