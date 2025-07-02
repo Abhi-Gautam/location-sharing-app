@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../config/app_config.dart';
 import '../core/utils.dart';
 import '../core/constants.dart';
+import '../models/session.dart';
 import '../providers/session_provider.dart';
 import '../providers/location_provider.dart';
 import '../providers/participants_provider.dart';
@@ -374,6 +375,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
         return 'Connection error';
       case SessionStatus.disconnected:
         return 'Disconnected';
+      default:
+        return 'Unknown status';
     }
   }
 

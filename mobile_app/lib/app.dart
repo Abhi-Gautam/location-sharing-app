@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'config/app_config.dart';
 import 'config/theme.dart';
 import 'core/utils.dart';
+import 'models/session.dart';
 import 'providers/session_provider.dart';
 import 'providers/location_provider.dart';
 import 'screens/home_screen.dart';

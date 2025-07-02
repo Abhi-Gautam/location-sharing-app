@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/utils.dart';
 import '../core/constants.dart';
+import '../core/extensions.dart';
 import '../providers/session_provider.dart';
 import '../services/storage_service.dart';
 

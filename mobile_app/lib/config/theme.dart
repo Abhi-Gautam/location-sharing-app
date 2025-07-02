@@ -65,7 +65,7 @@ class AppTheme {
       ),
 
       // Card Theme
-      cardTheme: const CardTheme(
+      cardTheme: const CardThemeData(
         elevation: 1,
         margin: EdgeInsets.all(8),
         color: surface,
@@ -147,7 +147,7 @@ class AppTheme {
       ),
 
       // Dialog Theme
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -207,7 +207,7 @@ class AppTheme {
       ),
 
       // Override other themes for dark mode as needed
-      cardTheme: const CardTheme(
+      cardTheme: const CardThemeData(
         elevation: 1,
         margin: EdgeInsets.all(8),
         color: darkSurface,
