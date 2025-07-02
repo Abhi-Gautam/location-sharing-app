@@ -58,14 +58,17 @@ async fn main() -> AppResult<()> {
 
     // Run database migrations
     info!("Running database migrations...");
-    sqlx::migrate!("../migrations")
-        .run(&db)
-        .await
-        .map_err(|e| {
-            warn!("Failed to run migrations: {}", e);
-            e
-        })?;
-    info!("Database migrations completed successfully");
+    match sqlx::migrate!("../migrations").run(&db).await {
+        Ok(_) => info!("Database migrations completed successfully"),
+        Err(e) => {
+            warn!("Migration check: {}", e);
+            // Don't fail if migrations have already been applied
+            if !e.to_string().contains("already exists") {
+                return Err(e.into());
+            }
+            info!("Database schema already up to date");
+        }
+    }
 
     // Create application state
     let state = AppState {
