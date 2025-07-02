@@ -66,4 +66,13 @@ class AppConstants {
   static const String defaultAvatarColor = '#FF5733';
   static const int defaultSessionDuration = 1440; // 24 hours in minutes
   static const int maxRetryAttempts = 3;
+  static const int maxParticipantsPerSession = 50;
+  
+  // Color palette for avatars
+  static const List<String> defaultAvatarColors = [
+    '#FF5733', '#33A1FF', '#33FF57', '#FF33F1', '#FFD133',
+    '#A133FF', '#33FFF1', '#FF8F33', '#8FFF33', '#3357FF',
+    '#FF5733', '#FFC300', '#DAF7A6', '#C70039', '#900C3F',
+    '#581845', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+  ];
 }

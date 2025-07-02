@@ -114,7 +114,7 @@ extension ColorExtensions on Color {
     return '#${value.toRadixString(16).substring(2).toUpperCase()}';
   }
 
-  /// Get contrasting color (black or white) for text
+  /// Get contrasting color (black or white) for text on this background
   Color get contrastingColor {
     final luminance = computeLuminance();
     return luminance > 0.5 ? Colors.black : Colors.white;
@@ -187,8 +187,8 @@ extension BuildContextExtensions on BuildContext {
   }
   
   /// Navigate and replace current page
-  Future<T?> pushReplacement<T>(Widget page) {
-    return Navigator.of(this).pushReplacement<T>(
+  Future<T?> pushReplacement<T extends Object?>(Widget page) {
+    return Navigator.of(this).pushReplacement<T, T>(
       MaterialPageRoute(builder: (_) => page),
     );
   }
@@ -218,3 +218,4 @@ extension ListExtensions<T> on List<T> {
   /// Get last element or null if empty
   T? get lastOrNull => isEmptyOrNull ? null : last;
 }
+
