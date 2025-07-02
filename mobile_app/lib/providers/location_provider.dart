@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/location_service.dart';
 import '../models/location.dart';
+import '../models/session.dart';
 import '../core/constants.dart';
+import 'session_provider.dart';
 
 /// Provider for location service
 final locationServiceProvider = Provider<LocationService>((ref) {

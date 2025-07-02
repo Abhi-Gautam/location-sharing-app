@@ -4,7 +4,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import '../config/app_config.dart';
 import '../core/constants.dart';
-import '../models/location.dart';
+import '../models/location.dart' as LocationModel;
 import '../models/participant.dart';
 
 /// Service for handling WebSocket real-time communication
@@ -60,7 +60,7 @@ class WebSocketService {
   }
 
   /// Send location update
-  void sendLocationUpdate(Location location) {
+  void sendLocationUpdate(LocationModel.Location location) {
     if (!_isConnected) return;
 
     final message = WebSocketMessage(
@@ -326,10 +326,18 @@ extension WebSocketMessageExtension on WebSocketMessage {
   bool get isError => type == AppConstants.wsError;
 
   /// Get location from location update message
-  Location? get location {
+  LocationModel.Location? get location {
     if (!isLocationUpdate) return null;
     try {
-      return Location.fromApiMap(data);
+      return LocationModel.Location(
+        latitude: (data['latitude'] as num).toDouble(),
+        longitude: (data['longitude'] as num).toDouble(),
+        timestamp: DateTime.parse(data['timestamp'] as String),
+        accuracy: (data['accuracy'] as num?)?.toDouble() ?? 0.0,
+        altitude: (data['altitude'] as num?)?.toDouble() ?? 0.0,
+        speed: (data['speed'] as num?)?.toDouble() ?? 0.0,
+        heading: (data['heading'] as num?)?.toDouble() ?? 0.0,
+      );
     } catch (e) {
       return null;
     }
@@ -393,7 +401,7 @@ enum WebSocketConnectionState {
 /// WebSocket service extensions for reactive programming
 extension WebSocketServiceExtension on WebSocketService {
   /// Get stream of location updates
-  Stream<Location> get locationUpdates => messages
+  Stream<LocationModel.Location> get locationUpdates => messages
       .where((msg) => msg.isLocationUpdate)
       .map((msg) => msg.location!)
       .where((location) => location != null);

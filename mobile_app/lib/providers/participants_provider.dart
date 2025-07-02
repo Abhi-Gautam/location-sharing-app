@@ -1,6 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/participant.dart';
 import '../models/location.dart';
+import '../models/session.dart';
 import 'session_provider.dart';
 
 /// Provider for all participants in the current session
@@ -437,5 +439,3 @@ extension ParticipantSortCriteriaExtension on ParticipantSortCriteria {
   }
 }
 
-/// Import statements that might be missing
-import 'package:flutter/material.dart';
