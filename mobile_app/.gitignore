@@ -42,3 +42,6 @@ coverage/
 
 # Generated web build files
 web/
+
+# Platform-specific build files
+macos/

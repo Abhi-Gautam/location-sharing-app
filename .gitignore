@@ -22,3 +22,7 @@ target/
 # IDEs
 .idea/
 .vscode/
+# Backend log files
+*.log
+api_server.log
+websocket_server.log
