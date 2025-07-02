@@ -1,4 +1,4 @@
-use axum::http::{HeaderValue, Method};
+use axum::http::{HeaderValue, Method, header};
 use shared::AppConfig;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -6,24 +6,17 @@ use tower_http::cors::{Any, CorsLayer};
 pub fn cors_layer(config: &AppConfig) -> CorsLayer {
     let mut cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
-        .allow_headers(Any)
-        .allow_credentials(true);
+        .allow_headers([
+            header::CONTENT_TYPE,
+            header::AUTHORIZATION,
+            header::ACCEPT,
+            header::ORIGIN,
+        ]);
 
     // Configure allowed origins based on environment
     if config.is_development() {
-        // In development, allow common local development origins
-        cors = cors
-            .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
-            .allow_origin("http://localhost:8080".parse::<HeaderValue>().unwrap())
-            .allow_origin("http://127.0.0.1:3000".parse::<HeaderValue>().unwrap())
-            .allow_origin("http://127.0.0.1:8080".parse::<HeaderValue>().unwrap());
-        
-        // Also allow configured origins
-        for origin in &config.server.cors_allowed_origins {
-            if let Ok(header_value) = origin.parse::<HeaderValue>() {
-                cors = cors.allow_origin(header_value);
-            }
-        }
+        // In development, allow any origin (no credentials for Any origin)
+        cors = cors.allow_origin(Any);
     } else {
         // In production, only allow configured origins
         let origins: Result<Vec<HeaderValue>, _> = config
