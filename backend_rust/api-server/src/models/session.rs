@@ -72,7 +72,7 @@ impl SessionRepository {
             r#"
             SELECT 
                 s.id, s.name, s.created_at, s.expires_at, s.is_active,
-                get_active_participant_count(s.id) as participant_count
+                get_active_participant_count(s.id)::bigint as participant_count
             FROM sessions s 
             WHERE s.id = $1
             "#,
@@ -153,7 +153,7 @@ impl SessionRepository {
     /// Check if session can accept more participants
     pub async fn can_accept_participants(&self, session_id: Uuid) -> AppResult<bool> {
         let count: i64 = sqlx::query_scalar(
-            "SELECT get_active_participant_count($1)",
+            "SELECT get_active_participant_count($1)::bigint",
         )
         .bind(session_id)
         .fetch_one(&self.pool)

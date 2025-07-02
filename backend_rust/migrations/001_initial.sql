@@ -62,7 +62,7 @@ CREATE TRIGGER trigger_update_session_activity
 
 -- Function to clean up expired sessions
 CREATE OR REPLACE FUNCTION cleanup_expired_sessions()
-RETURNS BIGINT AS $$
+RETURNS INTEGER AS $$
 DECLARE
     expired_count INTEGER;
 BEGIN
@@ -91,7 +91,7 @@ $$ LANGUAGE plpgsql;
 
 -- Function to clean up inactive sessions (no active participants for > 1 hour)
 CREATE OR REPLACE FUNCTION cleanup_inactive_sessions()
-RETURNS BIGINT AS $$
+RETURNS INTEGER AS $$
 DECLARE
     inactive_count INTEGER;
 BEGIN
@@ -126,7 +126,7 @@ $$ LANGUAGE plpgsql;
 
 -- Function to get active participant count for a session
 CREATE OR REPLACE FUNCTION get_active_participant_count(session_uuid UUID)
-RETURNS BIGINT AS $$
+RETURNS INTEGER AS $$
 BEGIN
     RETURN (
         SELECT COUNT(*) 

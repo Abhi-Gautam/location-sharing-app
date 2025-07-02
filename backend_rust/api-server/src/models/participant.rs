@@ -48,7 +48,7 @@ impl ParticipantRepository {
 
         // Check session capacity
         let participant_count: i64 = sqlx::query_scalar(
-            "SELECT get_active_participant_count($1)",
+            "SELECT get_active_participant_count($1)::bigint",
         )
         .bind(session_id)
         .fetch_one(&self.pool)
@@ -149,7 +149,7 @@ impl ParticipantRepository {
     /// Get participant count for a session
     pub async fn get_participant_count(&self, session_id: Uuid) -> AppResult<i64> {
         let count = sqlx::query_scalar::<_, i64>(
-            "SELECT get_active_participant_count($1)",
+            "SELECT get_active_participant_count($1)::bigint",
         )
         .bind(session_id)
         .fetch_one(&self.pool)

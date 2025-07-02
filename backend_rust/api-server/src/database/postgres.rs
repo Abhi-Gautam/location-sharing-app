@@ -12,7 +12,7 @@ pub async fn create_pool(config: &AppConfig) -> AppResult<PgPool> {
         .await?;
 
     // Test the connection
-    let row: (i64,) = sqlx::query_as("SELECT 1")
+    let row: (i32,) = sqlx::query_as("SELECT 1")
         .fetch_one(&pool)
         .await?;
     
@@ -26,7 +26,7 @@ pub async fn create_pool(config: &AppConfig) -> AppResult<PgPool> {
 
 /// Health check for database connection
 pub async fn health_check(pool: &PgPool) -> AppResult<()> {
-    let _: (i64,) = sqlx::query_as("SELECT 1")
+    let _: (i32,) = sqlx::query_as("SELECT 1")
         .fetch_one(pool)
         .await?;
     Ok(())
