@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/participant.dart';
 import '../core/utils.dart';
+import '../core/extensions.dart';
 
 /// Widget for displaying participant avatar with color and initials
 class ParticipantAvatar extends StatelessWidget {

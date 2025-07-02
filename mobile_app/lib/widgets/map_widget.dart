@@ -67,10 +67,10 @@ class _MapWidgetState extends State<MapWidget> {
   void _initializeMap() {
     // Initialize with default location or current location
     final initialLocation = widget.currentLocation ??
-        const app_location.Location(
+        app_location.Location(
           latitude: AppConstants.defaultLatitude,
           longitude: AppConstants.defaultLongitude,
-          timestamp: null,
+          timestamp: DateTime.now(),
         );
 
     _lastCameraPosition = CameraPosition(

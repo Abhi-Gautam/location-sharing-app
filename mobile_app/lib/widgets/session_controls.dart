@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/session.dart';
+import '../models/participant.dart';
 import '../providers/session_provider.dart';
 import '../providers/location_provider.dart';
 
@@ -240,6 +242,8 @@ class SessionControls extends ConsumerWidget {
         return 'Error';
       case SessionStatus.disconnected:
         return 'Disconnected';
+      default:
+        return 'Unknown';
     }
   }
 
@@ -424,6 +428,8 @@ class SessionStatusIndicator extends ConsumerWidget {
         return 'Error';
       case SessionStatus.disconnected:
         return 'Disconnected';
+      default:
+        return 'Unknown';
     }
   }
 }
