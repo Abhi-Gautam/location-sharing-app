@@ -44,7 +44,7 @@ config :location_sharing, LocationSharing.Guardian,
 
 # CORS configuration
 config :cors_plug,
-  origin: ["http://localhost:3000", "http://localhost:8080"],
+  origin: ["*"],
   max_age: 86400,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 

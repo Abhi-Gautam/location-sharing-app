@@ -224,7 +224,7 @@ defmodule LocationSharingWeb.LocationChannel do
         Logger.warning("Participant #{user_id} not found in session #{session_id}")
       
       participant ->
-        now = DateTime.utc_now()
+        now = DateTime.utc_now() |> DateTime.truncate(:second)
         changeset = Participant.update_activity_changeset(participant, %{last_seen: now})
         
         case Repo.update(changeset) do

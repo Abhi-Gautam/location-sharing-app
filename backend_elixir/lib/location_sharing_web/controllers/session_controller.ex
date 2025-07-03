@@ -31,10 +31,11 @@ defmodule LocationSharingWeb.SessionController do
     expires_at = case params["expires_in_minutes"] do
       nil -> nil
       minutes when is_integer(minutes) ->
-        DateTime.add(DateTime.utc_now(), minutes * 60, :second)
+        DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(minutes * 60, :second)
       minutes when is_binary(minutes) ->
         case Integer.parse(minutes) do
-          {parsed_minutes, ""} -> DateTime.add(DateTime.utc_now(), parsed_minutes * 60, :second)
+          {parsed_minutes, ""} -> 
+            DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(parsed_minutes * 60, :second)
           _ -> nil
         end
       _ -> nil

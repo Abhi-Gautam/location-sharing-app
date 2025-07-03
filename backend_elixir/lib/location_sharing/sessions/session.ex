@@ -23,7 +23,6 @@ defmodule LocationSharing.Sessions.Session do
           last_activity: DateTime.t(),
           expires_at: DateTime.t() | nil,
           created_at: DateTime.t(),
-          updated_at: DateTime.t(),
           participants: [Participant.t()] | Ecto.Association.NotLoaded.t()
         }
 
@@ -39,7 +38,7 @@ defmodule LocationSharing.Sessions.Session do
 
     has_many :participants, Participant, foreign_key: :session_id
 
-    timestamps(type: :utc_datetime, inserted_at: :created_at)
+    timestamps(type: :utc_datetime, inserted_at: :created_at, updated_at: false)
   end
 
   @doc """
@@ -146,7 +145,7 @@ defmodule LocationSharing.Sessions.Session do
   # Private helper functions
 
   defp put_default_values(changeset) do
-    now = DateTime.utc_now()
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
     
     changeset
     |> put_change(:last_activity, now)
@@ -158,7 +157,7 @@ defmodule LocationSharing.Sessions.Session do
     case get_field(changeset, :expires_at) do
       nil ->
         # Default to 24 hours from now
-        expires_at = DateTime.add(DateTime.utc_now(), 24 * 3600, :second)
+        expires_at = DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.add(24 * 3600, :second)
         put_change(changeset, :expires_at, expires_at)
       
       _ ->

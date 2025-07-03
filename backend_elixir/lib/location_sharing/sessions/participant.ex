@@ -24,7 +24,6 @@ defmodule LocationSharing.Sessions.Participant do
           last_seen: DateTime.t(),
           is_active: boolean(),
           joined_at: DateTime.t(),
-          updated_at: DateTime.t(),
           session: Session.t() | Ecto.Association.NotLoaded.t()
         }
 
@@ -40,7 +39,7 @@ defmodule LocationSharing.Sessions.Participant do
 
     belongs_to :session, Session, foreign_key: :session_id
 
-    timestamps(type: :utc_datetime, inserted_at: :joined_at)
+    timestamps(type: :utc_datetime, inserted_at: :joined_at, updated_at: false)
   end
 
   @doc """
@@ -203,7 +202,7 @@ defmodule LocationSharing.Sessions.Participant do
   # Private helper functions
 
   defp put_default_values(changeset) do
-    now = DateTime.utc_now()
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
     
     changeset
     |> put_change(:last_seen, now)

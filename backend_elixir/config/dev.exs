@@ -2,10 +2,10 @@ import Config
 
 # Configure your database
 config :location_sharing, LocationSharing.Repo,
-  username: "postgres",
-  password: "postgres",
+  username: "dev",
+  password: "dev123",
   hostname: "localhost",
-  database: "location_sharing_dev",
+  database: "location_sharing",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
