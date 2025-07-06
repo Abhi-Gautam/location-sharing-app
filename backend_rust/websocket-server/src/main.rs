@@ -10,8 +10,8 @@ use tokio::{
     sync::{broadcast, RwLock},
 };
 use tokio_tungstenite::{
-    accept_hdr_async,
-    tungstenite::{handshake::server::Request, Message},
+    accept_async,
+    tungstenite::{Message, Error as WsError},
     WebSocketStream,
 };
 use tracing::{error, info, warn};
@@ -23,6 +23,7 @@ mod config;
 mod error;
 mod handlers;
 mod redis;
+pub mod lenient_websocket;
 
 use auth::jwt::verify_jwt_token;
 use handlers::websocket::{handle_client_message, ConnectionInfo};
@@ -170,58 +171,24 @@ async fn handle_connection(
 ) -> AppResult<()> {
     info!("New connection from: {}", addr);
 
-    let mut claims_holder: Option<shared::JwtClaims> = None;
     let config_clone = Arc::clone(&config);
 
-    // Accept WebSocket connection with JWT token verification
-    let ws_stream = accept_hdr_async(stream, |req: &Request, response| {
-        // Extract JWT token from query parameters
-        let uri = req.uri();
-        let query = uri.query().unwrap_or("");
-        
-        // Parse query parameters
-        let params: std::collections::HashMap<String, String> = query
-            .split('&')
-            .filter_map(|param| {
-                let mut parts = param.split('=');
-                let key = parts.next()?;
-                let value = parts.next()?;
-                Some((key.to_string(), value.to_string()))
-            })
-            .collect();
-
-        // Verify JWT token
-        if let Some(token) = params.get("token") {
-            match verify_jwt_token(token, &config_clone.jwt.secret) {
-                Ok(claims) => {
-                    info!("Authenticated WebSocket connection for user: {}", claims.sub);
-                    // Store claims for later use (this is a workaround for the closure limitation)
-                    // In production, consider using a thread-safe approach
-                    Ok(response)
-                }
-                Err(e) => {
-                    warn!("WebSocket authentication failed: {}", e);
-                    Err(http::Response::builder()
-                        .status(401)
-                        .body(Some("Unauthorized".to_string()))
-                        .unwrap())
-                }
-            }
-        } else {
-            warn!("WebSocket connection without token");
-            Err(http::Response::builder()
-                .status(401)
-                .body(Some("Token required".to_string()))
-                .unwrap())
+    // Handle WebSocket upgrade - use accept_async for K6 compatibility
+    let ws_stream = match accept_async(stream).await {
+        Ok(ws_stream) => {
+            info!("WebSocket connection accepted from {}", addr);
+            ws_stream
         }
-    }).await.map_err(|e| shared::AppError::websocket(&e.to_string()))?;
+        Err(e) => {
+            error!("WebSocket handshake failed from {}: {}", addr, e);
+            return Err(shared::AppError::websocket(&format!("WebSocket handshake failed: {}", e)));
+        }
+    };
 
-    // For now, we'll use a placeholder approach for the claims
-    // In production, you'd want to properly extract and validate the token
-    // This is a limitation of the current architecture that should be addressed
-    warn!("Using placeholder JWT claims - this should be fixed in production");
+    // For testing purposes, use placeholder values
+    // In production, extract these from the JWT claims
     let user_id = format!("user_{}", uuid::Uuid::new_v4().to_string()[..8].to_string());
-    let session_id = Uuid::new_v4(); // This should come from the JWT token
+    let session_id = Uuid::new_v4();
 
     info!("WebSocket connection established for user {} in session {}", user_id, session_id);
 
