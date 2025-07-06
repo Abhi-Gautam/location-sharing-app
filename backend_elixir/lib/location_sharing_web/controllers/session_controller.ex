@@ -7,8 +7,8 @@ defmodule LocationSharingWeb.SessionController do
 
   use LocationSharingWeb, :controller
 
-  alias LocationSharing.{Repo, Redis}
-  alias LocationSharing.Sessions.{Session, Participant}
+  alias LocationSharing.{Repo}
+  alias LocationSharing.Sessions.{Session, Participant, SessionServer}
 
   require Logger
 
@@ -51,8 +51,7 @@ defmodule LocationSharingWeb.SessionController do
       {:ok, session} ->
         Logger.info("Created session: #{session.id}")
         
-        # Update Redis activity
-        Redis.update_session_activity(session.id)
+        # Note: Session activity will be tracked when participants join via WebSocket
         
         response = %{
           session_id: session.id,
@@ -119,8 +118,13 @@ defmodule LocationSharingWeb.SessionController do
           |> put_status(:not_found)
           |> json(%{error: "Session has expired"})
         else
-          # Get participant count from Redis (more accurate for active participants)
-          {:ok, participant_count} = Redis.get_session_participant_count(session.id)
+          # Get participant count from SessionServer if available, otherwise from database
+          participant_count = case SessionServer.get_participants(session.id) do
+            {:ok, participants} -> length(participants)
+            {:error, :session_not_found} -> 
+              # Fallback to database count for sessions without active connections
+              Participant.active_for_session(session.id) |> Repo.aggregate(:count, :id)
+          end
           
           response = %{
             id: session.id,
@@ -179,11 +183,16 @@ defmodule LocationSharingWeb.SessionController do
           {:ok, updated_session} ->
             Logger.info("Ended session: #{session_id}")
             
-            # Notify all participants via WebSocket
-            broadcast_session_ended(session_id, "ended_by_creator")
-            
-            # Cleanup Redis data
-            Redis.cleanup_session(session_id)
+            # Terminate SessionServer (this will notify all participants and cleanup automatically)
+            case SessionServer.terminate_session(session_id) do
+              :ok ->
+                Logger.debug("SessionServer terminated for session #{session_id}")
+              
+              {:error, :session_not_found} ->
+                Logger.debug("SessionServer not found for session #{session_id}")
+                # Fallback to manual broadcast if SessionServer is not running
+                broadcast_session_ended(session_id, "ended_by_creator")
+            end
             
             conn
             |> put_status(:ok)

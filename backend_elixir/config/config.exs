@@ -31,11 +31,16 @@ config :location_sharing, LocationSharingWeb.Endpoint,
 # at the `config/runtime.exs`.
 config :location_sharing, LocationSharing.Mailer, adapter: Swoosh.Adapters.Local
 
-# Redis configuration
-config :location_sharing, LocationSharing.Redis,
-  host: "localhost",
-  port: 6379,
-  database: 0
+# PromEx metrics configuration for BEAM coordination monitoring
+config :location_sharing, LocationSharing.PromEx,
+  disabled: false,
+  manual_metrics_start_delay: :no_delay,
+  drop_metrics_groups: [],
+  grafana: [
+    host: "http://localhost:3000",
+    username: "admin",
+    password: "admin123"
+  ]
 
 # Guardian JWT configuration
 config :location_sharing, LocationSharing.Guardian,

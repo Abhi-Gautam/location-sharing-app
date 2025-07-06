@@ -5,7 +5,7 @@ defmodule LocationSharingWeb.HealthController do
 
   use LocationSharingWeb, :controller
 
-  alias LocationSharing.{Repo, Redis}
+  alias LocationSharing.Repo
 
   require Logger
 
@@ -29,13 +29,11 @@ defmodule LocationSharingWeb.HealthController do
 
   Checks connectivity to:
   - PostgreSQL database
-  - Redis cache
-  - Application processes
+  - Application processes (BEAM coordination)
   """
   def detailed(conn, _params) do
     checks = %{
       database: check_database(),
-      redis: check_redis(),
       application: check_application()
     }
 
@@ -104,25 +102,6 @@ defmodule LocationSharingWeb.HealthController do
     end
   end
 
-  defp check_redis do
-    try do
-      start_time = System.monotonic_time(:millisecond)
-      
-      case Redix.command(:redix, ["PING"]) do
-        {:ok, "PONG"} ->
-          response_time = System.monotonic_time(:millisecond) - start_time
-          %{status: "healthy", response_time_ms: response_time}
-
-        {:error, reason} ->
-          Logger.warning("Redis health check failed: #{inspect(reason)}")
-          %{status: "unhealthy", error: inspect(reason)}
-      end
-    rescue
-      error ->
-        Logger.error("Redis health check error: #{inspect(error)}")
-        %{status: "unhealthy", error: inspect(error)}
-    end
-  end
 
   defp check_application do
     try do

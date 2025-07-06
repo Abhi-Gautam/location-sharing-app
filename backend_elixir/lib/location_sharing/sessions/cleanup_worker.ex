@@ -4,16 +4,19 @@ defmodule LocationSharing.Sessions.CleanupWorker do
 
   This GenServer performs the following cleanup tasks:
   - Marks expired sessions as inactive
+  - Terminates SessionServer processes for ended sessions
   - Removes inactive participants from sessions
-  - Cleans up Redis data for ended sessions
   - Notifies WebSocket channels about session/participant changes
+  
+  Note: Since we're using BEAM processes instead of Redis, most cleanup
+  is handled automatically by SessionServer processes themselves.
   """
 
   use GenServer
   require Logger
 
-  alias LocationSharing.{Repo, Redis}
-  alias LocationSharing.Sessions.{Session, Participant}
+  alias LocationSharing.{Repo}
+  alias LocationSharing.Sessions.{Session, Participant, SessionServer}
 
   # Run cleanup every 5 minutes
   @cleanup_interval :timer.minutes(5)
@@ -41,7 +44,6 @@ defmodule LocationSharing.Sessions.CleanupWorker do
     # Perform cleanup tasks
     cleanup_expired_sessions()
     cleanup_inactive_participants()
-    cleanup_orphaned_redis_data()
     
     # Schedule next cleanup
     schedule_cleanup()
@@ -74,11 +76,16 @@ defmodule LocationSharing.Sessions.CleanupWorker do
         changeset = Session.end_session_changeset(session)
         {:ok, updated_session} = Repo.update(changeset)
         
-        # Notify all participants via WebSocket
-        broadcast_session_ended(updated_session.id, "expired")
-        
-        # Cleanup Redis data
-        Redis.cleanup_session(session.id)
+        # Terminate SessionServer (this will notify all participants and cleanup automatically)
+        case SessionServer.terminate_session(session.id) do
+          :ok ->
+            Logger.debug("SessionServer terminated for expired session #{session.id}")
+          
+          {:error, :session_not_found} ->
+            Logger.debug("SessionServer not found for expired session #{session.id}")
+            # Fallback to manual broadcast if SessionServer is not running
+            broadcast_session_ended(updated_session.id, "expired")
+        end
       end)
       
       if length(expired_sessions) > 0 do
@@ -94,18 +101,8 @@ defmodule LocationSharing.Sessions.CleanupWorker do
     Logger.debug("Cleaning up inactive participants")
     
     try do
-      # Find participants that haven't been seen recently in Redis
-      inactive_redis_participants = find_inactive_redis_participants()
-      
-      # Also check database for participants that should be marked inactive
+      # Check database for participants that should be marked inactive
       inactive_db_participants = Repo.all(Participant.inactive_participants(@participant_timeout_minutes))
-      
-      # Clean up Redis participants
-      Enum.each(inactive_redis_participants, fn {session_id, user_id} ->
-        Logger.debug("Removing inactive participant #{user_id} from session #{session_id}")
-        Redis.remove_session_participant(session_id, user_id)
-        broadcast_participant_left(session_id, user_id)
-      end)
       
       # Mark database participants as inactive
       Enum.each(inactive_db_participants, fn participant ->
@@ -114,14 +111,23 @@ defmodule LocationSharing.Sessions.CleanupWorker do
         changeset = Participant.leave_changeset(participant)
         {:ok, _} = Repo.update(changeset)
         
-        # Remove from Redis if still there
-        Redis.remove_session_participant(participant.session_id, participant.user_id)
-        broadcast_participant_left(participant.session_id, participant.user_id)
+        # Remove from SessionServer if still there
+        case SessionServer.remove_participant(participant.session_id, participant.user_id) do
+          :ok ->
+            Logger.debug("Removed inactive participant from SessionServer")
+          
+          {:error, :session_not_found} ->
+            Logger.debug("SessionServer not found for session #{participant.session_id}")
+            # Fallback to manual broadcast if SessionServer is not running
+            broadcast_participant_left(participant.session_id, participant.user_id)
+          
+          {:error, :participant_not_found} ->
+            Logger.debug("Participant #{participant.user_id} not found in SessionServer")
+        end
       end)
       
-      total_cleaned = length(inactive_redis_participants) + length(inactive_db_participants)
-      if total_cleaned > 0 do
-        Logger.info("Cleaned up #{total_cleaned} inactive participants")
+      if length(inactive_db_participants) > 0 do
+        Logger.info("Cleaned up #{length(inactive_db_participants)} inactive participants")
       end
     rescue
       error ->
@@ -129,28 +135,6 @@ defmodule LocationSharing.Sessions.CleanupWorker do
     end
   end
 
-  defp cleanup_orphaned_redis_data do
-    Logger.debug("Cleaning up orphaned Redis data")
-    
-    try do
-      # This would typically involve scanning Redis keys and checking against database
-      # For now, we rely on TTL expiration for most cleanup
-      # Could implement more sophisticated cleanup if needed
-      :ok
-    rescue
-      error ->
-        Logger.error("Error during Redis cleanup: #{inspect(error)}")
-    end
-  end
-
-  defp find_inactive_redis_participants do
-    # This is a simplified implementation
-    # In a real application, you might scan Redis for all session participants
-    # and check their last location update times
-    
-    # For now, return empty list as Redis TTL handles most cleanup
-    []
-  end
 
   defp broadcast_session_ended(session_id, reason) do
     message = %{

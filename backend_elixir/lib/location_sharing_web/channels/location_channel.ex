@@ -13,8 +13,8 @@ defmodule LocationSharingWeb.LocationChannel do
 
   require Logger
 
-  alias LocationSharing.{Repo, Redis}
-  alias LocationSharing.Sessions.{Session, Participant}
+  alias LocationSharing.{Repo}
+  alias LocationSharing.Sessions.{Session, Participant, SessionServer}
 
   @impl true
   def join("location:" <> session_id, _payload, socket) do
@@ -31,23 +31,38 @@ defmodule LocationSharingWeb.LocationChannel do
             # Subscribe to session events
             Phoenix.PubSub.subscribe(LocationSharing.PubSub, "session:#{session_id}")
             
-            # Store connection mapping in Redis
-            connection_id = generate_connection_id()
-            Redis.set_connection(user_id, connection_id)
+            # Get participant data from database
+            participant_data = case Repo.one(Participant.by_session_and_user(session_id, user_id)) do
+              nil ->
+                Logger.warning("Participant #{user_id} not found in session #{session_id}")
+                %{display_name: "Unknown", avatar_color: "#FF5733"}
+              
+              participant ->
+                %{
+                  display_name: participant.display_name,
+                  avatar_color: participant.avatar_color
+                }
+            end
             
-            # Add to Redis session participants if not already there
-            Redis.add_session_participant(session_id, user_id)
+            # Add participant to session server (this will start the server if needed)
+            case SessionServer.add_participant(session_id, user_id, participant_data) do
+              :ok ->
+                Logger.info("User #{user_id} added to SessionServer for session #{session_id}")
+              
+              {:error, reason} ->
+                Logger.error("Failed to add user #{user_id} to SessionServer: #{reason}")
+                # Continue anyway, the user might already be in the session
+            end
             
             # Update participant last_seen in database
             update_participant_activity(session_id, user_id)
             
-            # Send current session state to the joining participant
-            send_initial_state(socket, session_id)
-            
             socket = 
               socket
-              |> assign(:connection_id, connection_id)
               |> assign(:joined_at, DateTime.utc_now())
+            
+            # Schedule sending initial state after join is complete
+            Process.send_after(self(), {:send_initial_state, session_id}, 100)
             
             {:ok, %{status: "joined", session_id: session_id}, socket}
 
@@ -82,22 +97,14 @@ defmodule LocationSharingWeb.LocationChannel do
           timestamp: timestamp
         }
         
-        # Store in Redis with TTL
-        case Redis.set_location(session_id, user_id, location_data) do
+        # Store in SessionServer
+        case SessionServer.update_location(session_id, user_id, location_data) do
           :ok ->
-            # Update participant activity
+            # Update participant activity in database
             update_participant_activity(session_id, user_id)
             
-            # Update session activity
-            Redis.update_session_activity(session_id)
-            
-            # Broadcast to other participants in the session
-            broadcast_message = %{
-              type: "location_update",
-              data: Map.put(location_data, :user_id, user_id)
-            }
-            
-            broadcast!(socket, "location_update", broadcast_message)
+            # The SessionServer automatically broadcasts the location update
+            # via Phoenix.PubSub, so we don't need to broadcast here
             
             {:noreply, socket}
 
@@ -118,7 +125,8 @@ defmodule LocationSharingWeb.LocationChannel do
     
     Logger.debug("Ping from user #{user_id}")
     
-    # Update participant activity
+    # Update participant activity in both SessionServer and database
+    SessionServer.update_activity(session_id, user_id)
     update_participant_activity(session_id, user_id)
     
     {:reply, {:ok, %{type: "pong", data: %{}}}, socket}
@@ -128,6 +136,12 @@ defmodule LocationSharingWeb.LocationChannel do
   def handle_in(event, payload, socket) do
     Logger.warning("Unhandled channel event: #{event} with payload: #{inspect(payload)}")
     {:reply, {:error, %{reason: "unknown_event"}}, socket}
+  end
+
+  @impl true
+  def handle_info({:send_initial_state, session_id}, socket) do
+    send_initial_state(socket, session_id)
+    {:noreply, socket}
   end
 
   @impl true
@@ -168,11 +182,20 @@ defmodule LocationSharingWeb.LocationChannel do
     
     Logger.info("User #{user_id} disconnected from session #{session_id}: #{inspect(reason)}")
     
-    # Remove connection mapping
-    Redis.delete_connection(user_id)
+    # Remove participant from SessionServer
+    case SessionServer.remove_participant(session_id, user_id) do
+      :ok ->
+        Logger.debug("User #{user_id} removed from SessionServer")
+      
+      {:error, :session_not_found} ->
+        Logger.debug("SessionServer not found for session #{session_id}")
+      
+      {:error, reason} ->
+        Logger.warning("Failed to remove user #{user_id} from SessionServer: #{reason}")
+    end
     
-    # Note: We don't immediately remove from session participants
-    # The cleanup worker will handle inactive participants
+    # Note: The database participant record is kept for audit purposes
+    # The cleanup worker will mark inactive participants
     
     :ok
   end
@@ -237,17 +260,21 @@ defmodule LocationSharingWeb.LocationChannel do
 
   defp send_initial_state(socket, session_id) do
     # Send current participants
-    case Redis.get_session_participants(session_id) do
-      {:ok, user_ids} ->
-        participants = get_participant_details(session_id, user_ids)
-        push(socket, "initial_participants", %{participants: participants})
+    case SessionServer.get_participants(session_id) do
+      {:ok, participants} ->
+        # Filter out the joining user from the participants list
+        filtered_participants = Enum.reject(participants, fn participant ->
+          participant[:user_id] == socket.assigns.user_id
+        end)
+        
+        push(socket, "initial_participants", %{participants: filtered_participants})
       
       {:error, _} ->
         Logger.warning("Could not fetch initial participants for session #{session_id}")
     end
     
     # Send current locations
-    case Redis.get_session_locations(session_id) do
+    case SessionServer.get_locations(session_id) do
       {:ok, locations} ->
         # Don't send the joining user's own location back
         filtered_locations = Enum.reject(locations, fn location ->
@@ -261,20 +288,4 @@ defmodule LocationSharingWeb.LocationChannel do
     end
   end
 
-  defp get_participant_details(session_id, user_ids) do
-    Participant.active_for_session(session_id)
-    |> Repo.all()
-    |> Enum.filter(fn p -> p.user_id in user_ids end)
-    |> Enum.map(fn participant ->
-      %{
-        user_id: participant.user_id,
-        display_name: participant.display_name,
-        avatar_color: participant.avatar_color
-      }
-    end)
-  end
-
-  defp generate_connection_id do
-    "conn_" <> (:crypto.strong_rand_bytes(8) |> Base.encode16(case: :lower))
-  end
 end

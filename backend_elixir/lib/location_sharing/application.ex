@@ -12,10 +12,10 @@ defmodule LocationSharing.Application do
       LocationSharing.Repo,
       {DNSCluster, query: Application.get_env(:location_sharing, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: LocationSharing.PubSub},
-      # Redis client for location caching
-      {Redix, name: :redix, host: "localhost", port: 6379},
       # Start the Finch HTTP client for sending emails
       {Finch, name: LocationSharing.Finch},
+      # Prometheus metrics for BEAM coordination monitoring
+      LocationSharing.PromEx,
       # Session management supervisor
       LocationSharing.Sessions.Supervisor,
       # Start to serve requests, typically the last entry
