@@ -1,0 +1,212 @@
+{
+  "id": null,
+  "title": "Backend Architecture Comparison: Rust vs Elixir",
+  "tags": ["backend", "comparison", "performance"],
+  "timezone": "browser",
+  "panels": [
+      {
+        "id": 1,
+        "title": "HTTP Requests per Second",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(api_server_http_requests_total[1m])",
+            "legendFormat": "Rust Backend",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(location_sharing_prom_ex_phoenix_http_requests_total[1m]))",
+            "legendFormat": "Elixir Backend", 
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "reqps"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Response Time Comparison",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(api_server_http_request_duration_seconds_bucket[1m]))",
+            "legendFormat": "Rust P95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(location_sharing_prom_ex_phoenix_http_request_duration_milliseconds_bucket[1m])) by (le)) / 1000",
+            "legendFormat": "Elixir P95",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Memory Usage",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes{job=\"rust-api\"}",
+            "legendFormat": "Rust Memory",
+            "refId": "A"
+          },
+          {
+            "expr": "location_sharing_prom_ex_beam_memory_allocated_bytes",
+            "legendFormat": "Elixir Memory",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "bytes"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Process/Thread Count",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "process_threads{job=\"rust-api\"}",
+            "legendFormat": "Rust Threads",
+            "refId": "A"
+          },
+          {
+            "expr": "location_sharing_prom_ex_beam_stats_process_count",
+            "legendFormat": "Elixir Processes",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "short"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Total Requests Processed",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "api_server_http_requests_total",
+            "legendFormat": "Rust Total",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(location_sharing_prom_ex_phoenix_http_requests_total)",
+            "legendFormat": "Elixir Total",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "short"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "Architecture Overview",
+        "type": "text",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        },
+        "options": {
+          "content": "## Backend Architecture Comparison\n\n**🦀 Rust Backend (External Coordination)**\n- Microservices: API + WebSocket servers\n- Redis pub/sub for inter-service communication\n- Horizontal scaling approach\n\n**🧪 Elixir Backend (Internal Coordination)**\n- Monolithic Phoenix application\n- BEAM processes + GenServers + ETS\n- Vertical scaling via OTP supervision\n\n**📊 Key Metrics**\n- Response times, memory usage, request throughput\n- Process/thread management efficiency\n- Coordination overhead comparison"
+        }
+      },
+      {
+        "id": 7,
+        "title": "K6 Load Test Metrics",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "k6_http_reqs_total",
+            "legendFormat": "K6 Total Requests",
+            "refId": "A"
+          },
+          {
+            "expr": "k6_http_req_failed_rate",
+            "legendFormat": "K6 Failure Rate",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 24
+        }
+      }
+    ],
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "refresh": "5s"
+}
