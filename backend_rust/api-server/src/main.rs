@@ -16,6 +16,7 @@ mod database;
 mod error;
 mod handlers;
 mod middleware;
+mod metrics;
 mod models;
 
 use database::postgres::create_pool;
@@ -29,6 +30,7 @@ use middleware::cors::cors_layer;
 pub struct AppState {
     pub db: PgPool,
     pub config: Arc<AppConfig>,
+    pub metrics: metrics::RuntimeMetrics,
 }
 
 #[tokio::main]
@@ -74,6 +76,7 @@ async fn main() -> AppResult<()> {
     let state = AppState {
         db,
         config: Arc::clone(&config),
+        metrics: metrics::RuntimeMetrics::new(),
     };
 
     // Build the application router
@@ -95,6 +98,9 @@ async fn main() -> AppResult<()> {
 
 /// Health check endpoint
 async fn health_check(State(state): State<AppState>) -> Result<Json<serde_json::Value>, error::ApiError> {
+    // Track health check metric
+    metrics::tracking::track_health_check();
+    
     // Check database connection
     database::postgres::health_check(&state.db).await.map_err(error::ApiError)?;
     
@@ -113,6 +119,8 @@ async fn create_router(state: AppState) -> AppResult<Router> {
     let api_routes = Router::new()
         // Health check route
         .route("/health", get(health_check))
+        // Metrics endpoint
+        .route("/metrics", get(metrics::metrics_handler))
         // Session management routes
         .route("/sessions", post(sessions::create_session))
         .route("/sessions/:session_id", get(sessions::get_session))
@@ -129,9 +137,10 @@ async fn create_router(state: AppState) -> AppResult<Router> {
         )
         .with_state(state.clone());
 
-    // Add root health check as well
+    // Add root health check and metrics as well
     let root_routes = Router::new()
         .route("/health", get(health_check))
+        .route("/metrics", get(metrics::metrics_handler))
         .with_state(state.clone());
 
     let app = Router::new()
@@ -140,6 +149,10 @@ async fn create_router(state: AppState) -> AppResult<Router> {
         .layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())
+                .layer(axum::middleware::from_fn_with_state(
+                    state.clone(),
+                    metrics::track_request_metrics,
+                ))
                 .layer(cors_layer(&state.config))
                 .into_inner(),
         )

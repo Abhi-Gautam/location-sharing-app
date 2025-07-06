@@ -49,10 +49,10 @@ defmodule LocationSharing.MixProject do
       {:bandit, "~> 1.5"},
       # Authentication & Authorization
       {:guardian, "~> 2.3"},
-      # Redis client
-      {:redix, "~> 1.4"},
       # CORS support
-      {:cors_plug, "~> 3.0"}
+      {:cors_plug, "~> 3.0"},
+      # Prometheus metrics for BEAM coordination monitoring
+      {:prom_ex, "~> 1.8"}
     ]
   end
 

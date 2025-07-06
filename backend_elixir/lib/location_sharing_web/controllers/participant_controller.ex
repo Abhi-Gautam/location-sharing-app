@@ -7,8 +7,8 @@ defmodule LocationSharingWeb.ParticipantController do
 
   use LocationSharingWeb, :controller
 
-  alias LocationSharing.{Repo, Redis, Guardian}
-  alias LocationSharing.Sessions.{Session, Participant}
+  alias LocationSharing.{Repo, Guardian}
+  alias LocationSharing.Sessions.{Session, Participant, SessionServer}
 
   require Logger
 
@@ -37,18 +37,18 @@ defmodule LocationSharingWeb.ParticipantController do
     # Validate session exists and is active
     case validate_session(session_id) do
       {:ok, session} ->
-        # Check participant limit
-        case Redis.get_session_participant_count(session_id) do
-          {:ok, count} when count >= @max_participants_per_session ->
+        # Check participant limit using SessionServer
+        case SessionServer.get_participants(session_id) do
+          {:ok, participants} when length(participants) >= @max_participants_per_session ->
             conn
             |> put_status(:conflict)
             |> json(%{error: "Session is full (maximum #{@max_participants_per_session} participants)"})
 
-          {:ok, _count} ->
+          {:ok, _participants} ->
             create_participant(conn, session, params)
 
-          {:error, _} ->
-            # If Redis fails, continue with database check
+          {:error, :session_not_found} ->
+            # SessionServer not started yet, continue with creation
             create_participant(conn, session, params)
         end
 
@@ -87,14 +87,21 @@ defmodule LocationSharingWeb.ParticipantController do
           {:ok, _updated_participant} ->
             Logger.info("User #{user_id} left session #{session_id}")
             
-            # Remove from Redis
-            Redis.remove_session_participant(session_id, user_id)
-            
-            # Broadcast to other participants
-            broadcast_participant_left(session_id, user_id)
-            
-            # Update session activity
-            Redis.update_session_activity(session_id)
+            # Remove from SessionServer (this handles broadcasting automatically)
+            case SessionServer.remove_participant(session_id, user_id) do
+              :ok ->
+                Logger.debug("User #{user_id} removed from SessionServer")
+              
+              {:error, :session_not_found} ->
+                Logger.debug("SessionServer not found for session #{session_id}")
+                # Still broadcast manually if SessionServer is not running
+                broadcast_participant_left(session_id, user_id)
+              
+              {:error, reason} ->
+                Logger.warning("Failed to remove user #{user_id} from SessionServer: #{reason}")
+                # Fallback to manual broadcast
+                broadcast_participant_left(session_id, user_id)
+            end
             
             conn
             |> put_status(:ok)
@@ -199,17 +206,12 @@ defmodule LocationSharingWeb.ParticipantController do
       {:ok, participant} ->
         Logger.info("User #{user_id} joined session #{session.id} as '#{participant.display_name}'")
         
-        # Add to Redis
-        Redis.add_session_participant(session.id, user_id)
+        # Note: Participant will be added to SessionServer when they join the WebSocket channel
         
         # Generate JWT token for WebSocket authentication
         case Guardian.create_websocket_token(participant) do
           {:ok, token} ->
-            # Broadcast to other participants
-            broadcast_participant_joined(session.id, participant)
-            
-            # Update session activity
-            Redis.update_session_activity(session.id)
+            # Note: Participant joined event will be broadcast when they join the WebSocket channel
             
             response = %{
               user_id: user_id,

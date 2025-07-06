@@ -79,7 +79,42 @@ defmodule LocationSharingWeb.Telemetry do
       summary("vm.memory.total", unit: {:byte, :kilobyte}),
       summary("vm.total_run_queue_lengths.total"),
       summary("vm.total_run_queue_lengths.cpu"),
-      summary("vm.total_run_queue_lengths.io")
+      summary("vm.total_run_queue_lengths.io"),
+
+      # SessionServer Metrics (BEAM Process Architecture)
+      counter("location_sharing.session_server.started.count",
+        description: "Number of session servers started"
+      ),
+      counter("location_sharing.session_server.terminated.count",
+        description: "Number of session servers terminated"
+      ),
+      summary("location_sharing.session_server.terminated.uptime",
+        unit: {:native, :second},
+        description: "Session server uptime before termination"
+      ),
+      counter("location_sharing.session_server.participant_joined.count",
+        description: "Number of participants joined sessions"
+      ),
+      summary("location_sharing.session_server.participant_joined.total_participants",
+        description: "Total participants in session when someone joins"
+      ),
+      counter("location_sharing.session_server.participant_left.count",
+        description: "Number of participants left sessions"
+      ),
+      summary("location_sharing.session_server.participant_left.total_participants",
+        description: "Total participants remaining in session"
+      ),
+      counter("location_sharing.session_server.location_updated.count",
+        description: "Number of location updates processed"
+      ),
+
+      # Periodic SessionServer Metrics
+      last_value("location_sharing.session_servers.active.count",
+        description: "Number of active session servers"
+      ),
+      last_value("location_sharing.session_servers.active.total_participants",
+        description: "Total participants across all active sessions"
+      )
     ]
   end
 
@@ -87,7 +122,39 @@ defmodule LocationSharingWeb.Telemetry do
     [
       # A module, function and arguments to be invoked periodically.
       # This function must call :telemetry.execute/3 and a metric must be added above.
-      # {LocationSharingWeb, :count_users, []}
+      {__MODULE__, :measure_session_servers, []}
     ]
+  end
+
+  @doc """
+  Periodic measurement function to collect SessionServer metrics.
+  """
+  def measure_session_servers do
+    # Count active session servers
+    session_count = 
+      LocationSharing.Sessions.Registry
+      |> Registry.count()
+
+    # Get total participants across all sessions
+    total_participants = 
+      Registry.select(LocationSharing.Sessions.Registry, [{{:"$1", :"$2", :"$3"}, [], [:"$2"]}])
+      |> Enum.map(fn pid ->
+        try do
+          case GenServer.call(pid, :get_stats) do
+            {:ok, stats} -> stats.participant_count
+            _ -> 0
+          end
+        rescue
+          _ -> 0
+        end
+      end)
+      |> Enum.sum()
+
+    # Emit metrics
+    :telemetry.execute(
+      [:location_sharing, :session_servers, :active],
+      %{count: session_count, total_participants: total_participants},
+      %{}
+    )
   end
 end
