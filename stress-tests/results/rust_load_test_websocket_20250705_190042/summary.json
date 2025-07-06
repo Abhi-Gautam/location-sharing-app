@@ -1,0 +1,169 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {}
+    },
+    "metrics": {
+        "http_req_duration": {
+            "min": 0.82725,
+            "med": 6.083917,
+            "max": 847.883626,
+            "p(90)": 55.280834,
+            "p(95)": 151.576542,
+            "avg": 29.21036881094528,
+            "thresholds": {
+                "p(95)<100": true,
+                "p(99)<200": true
+            }
+        },
+        "http_req_sending": {
+            "p(95)": 0.33225,
+            "avg": 1.1296219104477605,
+            "min": 0.005417,
+            "med": 0.048958,
+            "max": 173.52925,
+            "p(90)": 0.21825
+        },
+        "data_received": {
+            "count": 123203,
+            "rate": 241.5558959882676
+        },
+        "websocket_connecting_duration": {
+            "max": 238,
+            "p(90)": 7.100000000000002,
+            "p(95)": 12.049999999999995,
+            "avg": 5.72,
+            "min": 0,
+            "med": 2
+        },
+        "websocket_message_send_duration": {
+            "max": 1,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.04,
+            "min": 0,
+            "med": 0
+        },
+        "participant_joins": {
+            "rate": 0.19606332312384242,
+            "count": 100
+        },
+        "http_reqs": {
+            "count": 201,
+            "rate": 0.3940872794789233
+        },
+        "http_req_waiting": {
+            "avg": 27.139282776119412,
+            "min": 0.756125,
+            "med": 5.922,
+            "max": 810.694542,
+            "p(90)": 55.177041,
+            "p(95)": 122.181834
+        },
+        "http_req_tls_handshaking": {
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "ws_sessions": {
+            "count": 100,
+            "rate": 0.19606332312384242
+        },
+        "ws_msgs_sent": {
+            "count": 100,
+            "rate": 0.19606332312384242
+        },
+        "websocket_connection_success": {
+            "fails": 0,
+            "passes": 100,
+            "thresholds": {
+                "rate>0.95": false
+            },
+            "value": 1
+        },
+        "http_req_receiving": {
+            "min": 0.023,
+            "med": 0.10375,
+            "max": 115.760375,
+            "p(90)": 0.407166,
+            "p(95)": 1.1365,
+            "avg": 0.9414641243781097
+        },
+        "data_sent": {
+            "count": 116262,
+            "rate": 227.94714073024167
+        },
+        "vus_max": {
+            "value": 100,
+            "min": 100,
+            "max": 100
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 29.21036881094528,
+            "min": 0.82725,
+            "med": 6.083917,
+            "max": 847.883626,
+            "p(90)": 55.280834,
+            "p(95)": 151.576542
+        },
+        "vus": {
+            "value": 1,
+            "min": 1,
+            "max": 100
+        },
+        "http_req_blocked": {
+            "avg": 1.314340820895523,
+            "min": 0.001583,
+            "med": 0.155875,
+            "max": 64.646125,
+            "p(90)": 1.700292,
+            "p(95)": 3.84
+        },
+        "http_req_connecting": {
+            "avg": 0.8184933731343284,
+            "min": 0,
+            "med": 0.098209,
+            "max": 30.052708,
+            "p(90)": 1.183334,
+            "p(95)": 2.83875
+        },
+        "ws_connecting": {
+            "avg": 5.218570329999999,
+            "min": 0.293333,
+            "med": 1.364646,
+            "max": 223.524417,
+            "p(90)": 6.7229785,
+            "p(95)": 8.487630599999983
+        },
+        "ws_msgs_received": {
+            "count": 100,
+            "rate": 0.19606332312384242
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 201,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "websocket_message_send_success": {
+            "passes": 100,
+            "fails": 0,
+            "thresholds": {
+                "rate>0.98": false
+            },
+            "value": 1
+        }
+    },
+    "setup_data": {
+        "backend": "rust",
+        "scenario": "load_test"
+    }
+}

@@ -1,0 +1,141 @@
+{
+  "scenarios": {
+    "baseline": {
+      "description": "Baseline test with minimal load",
+      "users": 10,
+      "duration": "1m",
+      "rampUp": "15s"
+    },
+    "load_test": {
+      "description": "Normal load test",
+      "users": 100,
+      "duration": "5m",
+      "rampUp": "1m"
+    },
+    "stress_test": {
+      "description": "Stress test to find limits",
+      "users": 1000,
+      "duration": "10m",
+      "rampUp": "2m"
+    },
+    "spike_test": {
+      "description": "Sudden spike in traffic",
+      "users": 500,
+      "duration": "3m",
+      "rampUp": "10s"
+    },
+    "websocket_connection_storm": {
+      "description": "Test WebSocket connection limits",
+      "users": 5000,
+      "duration": "15m",
+      "rampUp": "5m",
+      "websockets_only": true
+    },
+    "location_update_flood": {
+      "description": "High frequency location updates",
+      "users": 100,
+      "duration": "10m",
+      "rampUp": "1m",
+      "location_updates_per_second": 10
+    },
+    "multi_session_load": {
+      "description": "Multiple sessions with concurrent users",
+      "users": 200,
+      "duration": "8m",
+      "rampUp": "2m",
+      "sessions_per_vu": 2,
+      "location_updates_per_second": 2
+    },
+    "redis_stress_test": {
+      "description": "Redis pub/sub performance testing",
+      "users": 300,
+      "duration": "10m",
+      "rampUp": "3m",
+      "location_updates_per_second": 5
+    },
+    "session_lifecycle_stress": {
+      "description": "Session creation, join, leave patterns",
+      "users": 150,
+      "duration": "12m",
+      "rampUp": "2m"
+    },
+    "backend_comparison": {
+      "description": "Side-by-side backend performance comparison",
+      "users": 100,
+      "duration": "6m",
+      "rampUp": "1m"
+    },
+    "shared_sessions_test": {
+      "description": "Test shared sessions - 10 sessions with 10 users each",
+      "users": 100,
+      "duration": "2m",
+      "rampUp": "30s",
+      "sessions": 10,
+      "users_per_session": 10
+    },
+    "medium_scale": {
+      "description": "Medium scale test - 10 sessions with 100 users each",
+      "users": 1000,
+      "duration": "3m",
+      "rampUp": "1m",
+      "sessions": 10,
+      "users_per_session": 100
+    },
+    "massive_scale": {
+      "description": "Massive scale test - 100 sessions with 100 users each",
+      "users": 10000,
+      "duration": "5m",
+      "rampUp": "2m",
+      "sessions": 100,
+      "users_per_session": 100
+    },
+    "websocket_infrastructure_test": {
+      "description": "WebSocket infrastructure stress test - Redis vs BEAM coordination",
+      "users": 200,
+      "duration": "10m",
+      "rampUp": "2m",
+      "sessions": 20,
+      "users_per_session": 10
+    },
+    "websocket_infrastructure_quick": {
+      "description": "Quick WebSocket infrastructure test - Redis vs BEAM coordination",
+      "users": 100,
+      "duration": "3m",
+      "rampUp": "1m",
+      "sessions": 10,
+      "users_per_session": 10
+    },
+    "websocket_scale_test": {
+      "description": "Large scale WebSocket infrastructure test",
+      "users": 1000,
+      "duration": "15m",
+      "rampUp": "3m",
+      "sessions": 50,
+      "users_per_session": 20
+    },
+    "websocket_massive_test": {
+      "description": "Massive WebSocket infrastructure test",
+      "users": 5000,
+      "duration": "20m",
+      "rampUp": "5m",
+      "sessions": 100,
+      "users_per_session": 50
+    }
+  },
+  "backends": {
+    "rust": {
+      "api_url": "http://rust-api:8000",
+      "ws_url": "ws://rust-ws:8001",
+      "health_endpoint": "/health"
+    },
+    "elixir": {
+      "api_url": "http://elixir:4000",
+      "ws_url": "ws://elixir:4000/socket/websocket",
+      "health_endpoint": "/health"
+    }
+  },
+  "thresholds": {
+    "http_req_duration": ["p(95)<100", "p(99)<200"],
+    "http_req_failed": ["rate<0.01"]
+  }
+}
