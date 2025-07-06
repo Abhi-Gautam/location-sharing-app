@@ -1,0 +1,155 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elixir-config
+  namespace: location-sharing
+data:
+  DATABASE_URL: "postgresql://dev:dev123@postgres:5432/location_sharing"
+  REDIS_URL: "redis://redis:6379"
+  SECRET_KEY_BASE: "k8s-test-secret-key-change-in-production-elixir-backend"
+  PHX_HOST: "0.0.0.0"
+  PHX_PORT: "4000"
+  MIX_ENV: "prod"
+  ERLANG_COOKIE: "location-sharing-cluster-cookie"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elixir-backend
+  namespace: location-sharing
+  labels:
+    app: elixir-backend
+    component: full-stack-server
+    backend: elixir
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: elixir-backend
+  template:
+    metadata:
+      labels:
+        app: elixir-backend
+        component: full-stack-server
+        backend: elixir
+    spec:
+      containers:
+      - name: elixir-backend
+        image: location-sharing/elixir-backend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 4000
+          name: http
+        envFrom:
+        - configMapRef:
+            name: elixir-config
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: NODE_NAME
+          value: "$(POD_NAME)@$(POD_IP)"
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "150m"
+          limits:
+            memory: "1Gi"
+            cpu: "750m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 4000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 4000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 4000
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres:15-alpine
+        command:
+        - sh
+        - -c
+        - |
+          until pg_isready -h postgres -p 5432 -U dev; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+      - name: wait-for-redis
+        image: redis:7-alpine
+        command:
+        - sh
+        - -c
+        - |
+          until redis-cli -h redis -p 6379 ping; do
+            echo "Waiting for redis..."
+            sleep 2
+          done
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elixir-backend
+  namespace: location-sharing
+  labels:
+    app: elixir-backend
+    component: full-stack-server
+    backend: elixir
+spec:
+  ports:
+  - port: 4000
+    targetPort: 4000
+    protocol: TCP
+    name: http
+  selector:
+    app: elixir-backend
+  type: ClusterIP
+---
+# Headless service for Elixir clustering
+apiVersion: v1
+kind: Service
+metadata:
+  name: elixir-backend-headless
+  namespace: location-sharing
+  labels:
+    app: elixir-backend
+    component: full-stack-server
+    backend: elixir
+spec:
+  clusterIP: None
+  ports:
+  - port: 4000
+    targetPort: 4000
+    protocol: TCP
+    name: http
+  - port: 4369
+    targetPort: 4369
+    protocol: TCP
+    name: epmd
+  selector:
+    app: elixir-backend

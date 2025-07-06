@@ -115,13 +115,13 @@ Unlike existing solutions (Find My Friends, Google Maps sharing), this app provi
 
 ### 4.1 Architecture Philosophy
 
-Based on comprehensive stress testing and performance evaluation, the project implements a **hybrid architecture** that combines the strengths of both Rust and Elixir:
+Based on comprehensive stress testing, complexity analysis, and operational considerations, the project implements a **single-backend architecture** using Elixir Phoenix:
 
-**Hybrid Architecture: Rust APIs + Elixir WebSockets**
-- **Rust Services**: High-performance stateless API services (User, Location, Cache)
-- **Elixir WebSocket Server**: Real-time connection management with BEAM process coordination
-- **Service Boundary**: Clear separation between stateless operations and stateful connections
-- **Best of Both**: Performance optimization for APIs, reliability optimization for real-time features
+**Elixir-Only Architecture**
+- **Unified Backend**: Single Phoenix application handling both REST APIs and WebSocket connections
+- **BEAM Process Coordination**: Built-in fault tolerance and state management without external dependencies
+- **Operational Simplicity**: Single service deployment, monitoring, and debugging
+- **Development Velocity**: Monolithic architecture enabling faster iteration and development
 
 ### 4.2 Shared Infrastructure
 
@@ -159,77 +159,83 @@ Based on comprehensive stress testing and performance evaluation, the project im
 - **State Management**: Riverpod for reactive state management
 - **Real-time**: WebSocket connections for live updates
 
-### 4.3 Hybrid Architecture Design
+### 4.3 Elixir-Only Architecture Design
 
 #### Service Design
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   Flutter App   │────▶│   Load Balancer  │────▶│  Rust API       │
-│  (Mobile Client)│     │                  │     │  Services       │
-└─────────────────┘     │                  │     │  (Port 8080)    │
-                        │                  │     │  • User Service │
-                        │                  │     │  • Location API │
-                        │                  │────▶│  • Cache Layer  │
-                        └──────────────────┘     └─────────────────┘
-                                ║                           │
-                                ║                           ▼
-                                ║                  ┌─────────────────┐
-                                ║                  │  PostgreSQL     │
-                                ║                  │  Database       │
-                                ▼                  └─────────────────┘
-                        ┌─────────────────────┐
-                        │  Elixir WebSocket   │
-                        │  Server             │
-                        │  (Port 4000)        │
-                        │  ┌─GenServer Pool─┐ │
-                        │  │ Session Procs  │ │
-                        │  │ + Supervision  │ │
-                        │  └─Phoenix PubSub─┘ │
-                        └─────────────────────┘
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐
+│   Flutter App   │────▶│   Load Balancer  │────▶│  Elixir Phoenix     │
+│  (Mobile Client)│     │   (Optional)     │     │  Application        │
+└─────────────────┘     └──────────────────┘     │  (Port 4000)        │
+                                                 │                     │
+                                                 │  ┌─REST API─────┐   │
+                                                 │  │ • Sessions   │   │
+                                                 │  │ • Participants│   │
+                                                 │  │ • Health     │   │
+                                                 │  └──────────────┘   │
+                                                 │                     │
+                                                 │  ┌─WebSocket────┐   │
+                                                 │  │ • Channels   │   │
+                                                 │  │ • Real-time  │   │
+                                                 │  │ • PubSub     │   │
+                                                 │  └──────────────┘   │
+                                                 │                     │
+                                                 │  ┌─GenServer────┐   │
+                                                 │  │ • Session    │   │
+                                                 │  │   Processes  │   │
+                                                 │  │ • Supervision│   │
+                                                 │  └──────────────┘   │
+                                                 └─────────────────────┘
+                                                           │
+                                                           ▼
+                                                 ┌─────────────────────┐
+                                                 │  PostgreSQL         │
+                                                 │  Database           │
+                                                 │  • Session metadata │
+                                                 │  • Participant data │
+                                                 └─────────────────────┘
 ```
 
-#### Rust API Services
-**Technology Stack:**
-- **Framework**: Axum 0.7+ on Tokio runtime
-- **Database**: SQLx with PostgreSQL connection pooling
-- **Serialization**: serde + serde_json
-- **Authentication**: jsonwebtoken for API auth
-- **Logging**: tracing + tracing-subscriber
-- **Configuration**: config crate with environment support
-
-**Services:**
-- **User Service**: Authentication, user management, session creation
-- **Location Service**: Location data processing, validation, and persistence
-- **Location Cache**: High-performance location data caching and retrieval
-
-**Data Flow:**
-1. **Session Management**: API handles session CRUD operations
-2. **Authentication**: JWT token generation for WebSocket authentication
-3. **Location Processing**: Validates and processes location data
-4. **Data Persistence**: Stores session metadata and participant records
-
-#### Elixir WebSocket Server
+#### Elixir Phoenix Application
 **Technology Stack:**
 - **Framework**: Phoenix 1.7+ with OTP supervision
-- **Database**: Ecto 3.10+ with PostgreSQL (read-only for session validation)
-- **State Management**: GenServer processes + ETS tables
+- **Database**: Ecto 3.10+ with PostgreSQL
+- **State Management**: GenServer processes + ETS tables (no external dependencies)
 - **Real-time Messaging**: Phoenix PubSub (built on BEAM processes)
 - **WebSocket**: Phoenix Channels
 - **Process Registry**: Registry for connection tracking
-- **Authentication**: Guardian for JWT validation
+- **Serialization**: Jason for JSON handling
+- **Authentication**: Guardian for JWT
+- **Supervision**: OTP supervision trees for fault tolerance
+- **Monitoring**: PromEx for metrics collection
 
-**Data Flow:**
-1. **Connection Management**: Phoenix channels handle WebSocket lifecycle
-2. **Location Updates**: Real-time location broadcasting via GenServer processes
-3. **Session Coordination**: Per-session GenServer manages participant state
-4. **Real-time Broadcasting**: Phoenix PubSub distributes to session participants
-5. **Fault Tolerance**: OTP supervision automatically recovers from failures
+#### Unified Services
+**REST API Services:**
+- **Session Management**: Create, read, update, delete sessions
+- **Participant Management**: Join sessions, leave sessions, list participants
+- **Health Checks**: Application and database health monitoring
+- **Authentication**: JWT token generation and validation
 
-#### Service Communication
-- **API → WebSocket**: Session validation via shared PostgreSQL database
-- **Client → API**: REST calls for session management and authentication
-- **Client → WebSocket**: Real-time location updates and session events
-- **Database**: Shared PostgreSQL for session metadata and participant records
+**WebSocket Services:**
+- **Real-time Location Updates**: Live location broadcasting to session participants
+- **Connection Management**: WebSocket lifecycle and connection health
+- **Session Coordination**: Participant state management via GenServer processes
+- **Event Broadcasting**: Join/leave notifications, session events
+
+#### Data Flow
+1. **Session Creation**: Phoenix controller creates session, stores in PostgreSQL
+2. **Participant Join**: REST API validates and creates participant record
+3. **WebSocket Connection**: Phoenix Channel establishes real-time connection
+4. **Session State**: GenServer process manages in-memory participant state
+5. **Location Updates**: Real-time broadcasting via Phoenix PubSub
+6. **Fault Tolerance**: OTP supervisor restarts failed processes automatically
+
+#### Benefits of Unified Architecture
+- **Single Deployment**: One service to deploy, monitor, and scale
+- **Shared State**: Direct access to session data without service communication
+- **Simplified Development**: No service boundaries or API contracts
+- **Built-in Fault Tolerance**: OTP supervision for automatic recovery
+- **No External Dependencies**: Pure BEAM coordination eliminates Redis
 
 ### 4.4 REST API Specification
 
@@ -275,8 +281,7 @@ Response: 201
 ### 4.5 WebSocket Protocol
 
 #### Connection Authentication
-- **Rust**: `ws://localhost:8081/ws?token={jwt_token}`
-- **Elixir**: `ws://localhost:4000/socket/websocket` with token in connect params
+- **Phoenix Channels**: `ws://localhost:4000/socket/websocket` with token in connect params
 
 #### Message Format
 ```json
@@ -666,25 +671,33 @@ Both architectures achieved **0ms broadcast latency** but through different mech
 **Result**: BEAM processes proved equally effective for session coordination without external dependencies
 **Benefit**: Simplified deployment and reduced operational complexity
 
-### 9.5 Architectural Decision Based on Testing
+### 9.5 Final Architectural Decision
 
-Based on comprehensive stress testing up to **10,000 concurrent users across 100 sessions**, we determined the optimal architecture:
+Based on comprehensive stress testing up to **10,000 concurrent users across 100 sessions** and subsequent complexity analysis, we made the final decision:
 
-#### **Hybrid Architecture Decision: Rust APIs + Elixir WebSockets**
+#### **Elixir-Only Architecture Decision**
 
-**Use Rust for API Services:**
-- **User Service**: Authentication, user management
-- **Location Service**: Location data processing and validation  
-- **Location Cache**: High-performance location data caching
-- **Rationale**: Superior API performance (2-4x faster response times), excellent stateless scaling
+**Single Backend: Elixir Phoenix**
+- **API Services**: Session management, user authentication, location processing
+- **WebSocket Infrastructure**: Real-time connection management and message broadcasting
+- **State Management**: BEAM processes for session coordination (no external dependencies)
+- **Database**: PostgreSQL for persistent data
 
-**Use Elixir for WebSocket Infrastructure:**
-- **Real-time Connection Management**: WebSocket lifecycle and state management
-- **Message Broadcasting**: Location updates and session events
-- **Session Coordination**: Participant management and session state
-- **Rationale**: Superior stateful connection handling, built-in fault tolerance, no external dependencies
+**Rationale for Choosing Elixir Over Hybrid:**
+- **Simplicity**: Single service deployment vs distributed system complexity
+- **Performance**: 24ms WebSocket connections and 150ms API responses are excellent for location sharing
+- **Fault Tolerance**: Built-in OTP supervision trees for automatic recovery
+- **No External Dependencies**: Eliminated Redis, reducing operational overhead
+- **Development Velocity**: Faster iteration with monolithic architecture
+- **Scale Reality**: Both backends handle 10K+ users; complexity not justified for real-world scale
 
-This hybrid approach leverages the **performance strengths of Rust for stateless operations** and the **reliability strengths of Elixir/BEAM for stateful real-time connections**.
+**Why Hybrid Was Rejected:**
+- Service communication overhead (10-55ms) would negate WebSocket performance benefits
+- 2x operational complexity (monitoring, deployment, debugging)
+- Performance improvements irrelevant for location sharing use case
+- Premature optimization for scale problems that don't exist
+
+This decision prioritizes **operational simplicity** and **development velocity** while maintaining excellent performance characteristics for the real-world scale requirements.
 
 ---
 
@@ -853,23 +866,20 @@ Total                    100%    7.3         8.1           7.44           8.16
 
 ## Conclusion
 
-This PRD documents the complete journey from dual-backend evaluation to **hybrid architecture decision** for a real-time location sharing application. Through comprehensive stress testing up to 10,000 concurrent users, we determined that combining Rust and Elixir provides optimal performance and reliability.
+This PRD documents the complete journey from dual-backend evaluation to **final Elixir-only architecture decision** for a real-time location sharing application. Through comprehensive stress testing up to 10,000 concurrent users and subsequent complexity analysis, we determined that a single well-designed Elixir backend provides optimal balance of performance, reliability, and operational simplicity.
 
-### Final Architecture Decision: Hybrid Rust + Elixir
+### Final Architecture Decision: Elixir-Only
 
-**Rust for API Services** (User, Location, Cache):
-- Superior performance (2-4x faster API response times)
-- Excellent stateless scaling characteristics
-- Minimal resource usage under load
-
-**Elixir for WebSocket Infrastructure**:
-- Superior stateful connection management with BEAM processes
-- Built-in fault tolerance and automatic recovery
+**Elixir Phoenix for Complete Backend**:
+- Unified REST API and WebSocket services in single application
+- Built-in fault tolerance with OTP supervision trees
 - No external dependencies (Redis eliminated)
+- Excellent performance (24ms WebSocket connections, 150ms API responses)
+- Operational simplicity with single service deployment
 
-The success of this project lies in generating **concrete performance data** that informed our architectural decision, demonstrating that optimal real-time applications benefit from leveraging the strengths of multiple technologies rather than forcing a single-technology solution.
+The success of this project lies in generating **concrete performance data** and **complexity analysis** that informed our architectural decision, demonstrating that simple, well-designed systems often outperform complex distributed architectures in real-world scenarios.
 
-**Implementation Complete**: The hybrid architecture is now ready for production deployment with documented performance characteristics, operational guidelines, and scaling strategies.
+**Implementation Complete**: The Elixir-only architecture is now ready for production deployment with documented performance characteristics, simplified operational procedures, and proven scaling capabilities.
 
 ---
 

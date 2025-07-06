@@ -1,10 +1,10 @@
 # Location Sharing App
 
-This project is a location sharing application with a Flutter mobile app and a backend that can be run with either Rust or Elixir.
+A real-time location sharing application built with **Flutter** (mobile) and **Elixir Phoenix** (backend), designed for groups to share their location during activities like group travel, motorcycle rides, and social meetups.
 
 ## Quick Start
 
-A single script is provided to manage the entire application stack with different scenarios and flags.
+A single script is provided to manage the entire application stack.
 
 ### Available Commands
 
@@ -13,20 +13,14 @@ A single script is provided to manage the entire application stack with differen
 # Initial setup (run once)
 ./run.sh --setup
 
-# Start with Rust backend + Flutter app
-./run.sh --rust
-
-# Start with Elixir backend + Flutter app  
-./run.sh --elixir
+# Start Elixir backend + Flutter app  
+./run.sh --start
 ```
 
 #### Individual Component Control
 ```bash
 # Start only Flutter app (requires backend already running)
 ./run.sh --flutter-only
-
-# Start only Rust backend services
-./run.sh --backend-rust
 
 # Start only Elixir backend service
 ./run.sh --backend-elixir
@@ -51,8 +45,8 @@ A single script is provided to manage the entire application stack with differen
 # 1. First time setup
 ./run.sh --setup
 
-# 2. Start everything with Rust backend
-./run.sh --rust
+# 2. Start everything
+./run.sh --start
 
 # 3. Check what's running
 ./run.sh --status
@@ -68,27 +62,15 @@ A single script is provided to manage the entire application stack with differen
 ./run.sh --flutter-only
 ```
 
-**Switch Between Backends:**
-```bash
-# Stop current backend and start Elixir instead
-./run.sh --stop
-./run.sh --elixir
-```
-
 ### Service Information
 
 **Ports:**
-- Rust API: `localhost:8000`
-- Rust WebSocket: `localhost:8001` 
-- Elixir (Phoenix): `localhost:4000`
+- Elixir Phoenix (API + WebSocket): `localhost:4000`
 - PostgreSQL: `localhost:5432`
-- Redis: `localhost:6379`
 
 **Logs:**
 - Flutter app: `mobile_app/flutter_app.log`
-- Rust API: `backend_rust/api_server.log`
-- Rust WebSocket: `backend_rust/websocket_server.log`
-- Elixir: `backend_elixir/elixir_server.log`
+- Elixir Phoenix: `backend_elixir/elixir_server.log`
 
 **Flutter Target:**
 - Always runs in Chrome browser for debugging

@@ -1,11 +1,11 @@
 class AppConfig {
-  // Backend Configuration  
-  static const String apiBaseUrl = 'http://localhost:8000/api';
-  static const String wsBaseUrl = 'ws://localhost:8001';
-  static const String baseUrl = 'http://localhost:8000/api';
-  static const String wsUrl = 'ws://localhost:8001';
+  // Backend Configuration - Elixir Phoenix Backend Only
+  static const String apiBaseUrl = 'http://localhost:4000/api';
+  static const String wsBaseUrl = 'ws://localhost:4000/socket/websocket';
+  static const String baseUrl = 'http://localhost:4000/api';
+  static const String wsUrl = 'ws://localhost:4000/socket/websocket';
   static const String environment = 'development';
-  static const String backendType = 'rust';
+  static const String backendType = 'elixir';
   
   // App Information
   static const String appName = 'Location Sharing';
