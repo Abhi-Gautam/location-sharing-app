@@ -52,6 +52,5 @@ defmodule LocationSharingWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug CORSPlug
-  plug PromEx.Plug, prom_ex_module: LocationSharing.PromEx
   plug LocationSharingWeb.Router
 end

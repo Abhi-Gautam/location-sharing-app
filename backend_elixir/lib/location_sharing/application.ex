@@ -14,8 +14,6 @@ defmodule LocationSharing.Application do
       {Phoenix.PubSub, name: LocationSharing.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: LocationSharing.Finch},
-      # Prometheus metrics for BEAM coordination monitoring
-      LocationSharing.PromEx,
       # Session management supervisor
       LocationSharing.Sessions.Supervisor,
       # Start to serve requests, typically the last entry
