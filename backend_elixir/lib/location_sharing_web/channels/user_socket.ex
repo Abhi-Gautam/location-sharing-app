@@ -54,7 +54,6 @@ defmodule LocationSharingWeb.UserSocket do
     end
   end
 
-  @impl true
   def handle_params(params, socket) do
     Logger.debug("WebSocket params: #{inspect(params)}")
     {:ok, socket}

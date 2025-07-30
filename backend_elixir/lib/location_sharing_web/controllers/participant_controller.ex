@@ -8,7 +8,7 @@ defmodule LocationSharingWeb.ParticipantController do
   use LocationSharingWeb, :controller
 
   alias LocationSharing.{Repo, Guardian}
-  alias LocationSharing.Sessions.{Session, Participant, SessionServer}
+  alias LocationSharing.Sessions.{Session, Participant}
 
   require Logger
 
@@ -37,19 +37,15 @@ defmodule LocationSharingWeb.ParticipantController do
     # Validate session exists and is active
     case validate_session(session_id) do
       {:ok, session} ->
-        # Check participant limit using SessionServer
-        case SessionServer.get_participants(session_id) do
-          {:ok, participants} when length(participants) >= @max_participants_per_session ->
-            conn
-            |> put_status(:conflict)
-            |> json(%{error: "Session is full (maximum #{@max_participants_per_session} participants)"})
-
-          {:ok, _participants} ->
-            create_participant(conn, session, params)
-
-          {:error, :session_not_found} ->
-            # SessionServer not started yet, continue with creation
-            create_participant(conn, session, params)
+        # Check participant limit using database count
+        participant_count = Participant.active_for_session(session_id) |> Repo.aggregate(:count, :id)
+        
+        if participant_count >= @max_participants_per_session do
+          conn
+          |> put_status(:conflict)
+          |> json(%{error: "Session is full (maximum #{@max_participants_per_session} participants)"})
+        else
+          create_participant(conn, session, params)
         end
 
       {:error, reason} ->
@@ -87,21 +83,8 @@ defmodule LocationSharingWeb.ParticipantController do
           {:ok, _updated_participant} ->
             Logger.info("User #{user_id} left session #{session_id}")
             
-            # Remove from SessionServer (this handles broadcasting automatically)
-            case SessionServer.remove_participant(session_id, user_id) do
-              :ok ->
-                Logger.debug("User #{user_id} removed from SessionServer")
-              
-              {:error, :session_not_found} ->
-                Logger.debug("SessionServer not found for session #{session_id}")
-                # Still broadcast manually if SessionServer is not running
-                broadcast_participant_left(session_id, user_id)
-              
-              {:error, reason} ->
-                Logger.warning("Failed to remove user #{user_id} from SessionServer: #{reason}")
-                # Fallback to manual broadcast
-                broadcast_participant_left(session_id, user_id)
-            end
+            # Broadcast participant left event
+            broadcast_participant_left(session_id, user_id)
             
             conn
             |> put_status(:ok)
@@ -296,22 +279,6 @@ defmodule LocationSharingWeb.ParticipantController do
     "#{scheme}://#{host}/socket/websocket"
   end
 
-  defp broadcast_participant_joined(session_id, participant) do
-    message = %{
-      type: "participant_joined",
-      data: %{
-        user_id: participant.user_id,
-        display_name: participant.display_name,
-        avatar_color: participant.avatar_color
-      }
-    }
-    
-    Phoenix.PubSub.broadcast(
-      LocationSharing.PubSub,
-      "session:#{session_id}",
-      {:participant_joined, message}
-    )
-  end
 
   defp broadcast_participant_left(session_id, user_id) do
     message = %{

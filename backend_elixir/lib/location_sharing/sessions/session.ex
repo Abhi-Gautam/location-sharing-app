@@ -38,7 +38,7 @@ defmodule LocationSharing.Sessions.Session do
 
     has_many :participants, Participant, foreign_key: :session_id
 
-    timestamps(type: :utc_datetime, inserted_at: :created_at, updated_at: false)
+    timestamps(type: :utc_datetime, inserted_at: :created_at)
   end
 
   @doc """

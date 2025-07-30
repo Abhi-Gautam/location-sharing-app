@@ -16,7 +16,7 @@ defmodule LocationSharing.Sessions.CleanupWorker do
   require Logger
 
   alias LocationSharing.{Repo}
-  alias LocationSharing.Sessions.{Session, Participant, SessionServer}
+  alias LocationSharing.Sessions.{Session, Participant}
 
   # Run cleanup every 5 minutes
   @cleanup_interval :timer.minutes(5)
@@ -76,16 +76,8 @@ defmodule LocationSharing.Sessions.CleanupWorker do
         changeset = Session.end_session_changeset(session)
         {:ok, updated_session} = Repo.update(changeset)
         
-        # Terminate SessionServer (this will notify all participants and cleanup automatically)
-        case SessionServer.terminate_session(session.id) do
-          :ok ->
-            Logger.debug("SessionServer terminated for expired session #{session.id}")
-          
-          {:error, :session_not_found} ->
-            Logger.debug("SessionServer not found for expired session #{session.id}")
-            # Fallback to manual broadcast if SessionServer is not running
-            broadcast_session_ended(updated_session.id, "expired")
-        end
+        # Broadcast session ended event to all participants
+        broadcast_session_ended(updated_session.id, "expired")
       end)
       
       if length(expired_sessions) > 0 do
@@ -111,19 +103,8 @@ defmodule LocationSharing.Sessions.CleanupWorker do
         changeset = Participant.leave_changeset(participant)
         {:ok, _} = Repo.update(changeset)
         
-        # Remove from SessionServer if still there
-        case SessionServer.remove_participant(participant.session_id, participant.user_id) do
-          :ok ->
-            Logger.debug("Removed inactive participant from SessionServer")
-          
-          {:error, :session_not_found} ->
-            Logger.debug("SessionServer not found for session #{participant.session_id}")
-            # Fallback to manual broadcast if SessionServer is not running
-            broadcast_participant_left(participant.session_id, participant.user_id)
-          
-          {:error, :participant_not_found} ->
-            Logger.debug("Participant #{participant.user_id} not found in SessionServer")
-        end
+        # Broadcast participant left event
+        broadcast_participant_left(participant.session_id, participant.user_id)
       end)
       
       if length(inactive_db_participants) > 0 do

@@ -14,7 +14,7 @@ defmodule LocationSharingWeb.LocationChannel do
   require Logger
 
   alias LocationSharing.{Repo}
-  alias LocationSharing.Sessions.{Session, Participant, SessionServer}
+  alias LocationSharing.Sessions.{Session, Participant}
 
   @impl true
   def join("location:" <> session_id, _payload, socket) do
@@ -31,28 +31,17 @@ defmodule LocationSharingWeb.LocationChannel do
             # Subscribe to session events
             Phoenix.PubSub.subscribe(LocationSharing.PubSub, "session:#{session_id}")
             
-            # Get participant data from database
-            participant_data = case Repo.one(Participant.by_session_and_user(session_id, user_id)) do
+            # Verify participant exists in database
+            case Repo.one(Participant.by_session_and_user(session_id, user_id)) do
               nil ->
                 Logger.warning("Participant #{user_id} not found in session #{session_id}")
-                %{display_name: "Unknown", avatar_color: "#FF5733"}
               
-              participant ->
-                %{
-                  display_name: participant.display_name,
-                  avatar_color: participant.avatar_color
-                }
+              _participant ->
+                Logger.debug("Participant #{user_id} verified in session #{session_id}")
             end
             
-            # Add participant to session server (this will start the server if needed)
-            case SessionServer.add_participant(session_id, user_id, participant_data) do
-              :ok ->
-                Logger.info("User #{user_id} added to SessionServer for session #{session_id}")
-              
-              {:error, reason} ->
-                Logger.error("Failed to add user #{user_id} to SessionServer: #{reason}")
-                # Continue anyway, the user might already be in the session
-            end
+            # Participant is already in database, WebSocket connection handles real-time state
+            Logger.info("User #{user_id} connected to location channel for session #{session_id}")
             
             # Update participant last_seen in database
             update_participant_activity(session_id, user_id)
@@ -97,21 +86,13 @@ defmodule LocationSharingWeb.LocationChannel do
           timestamp: timestamp
         }
         
-        # Store in SessionServer
-        case SessionServer.update_location(session_id, user_id, location_data) do
-          :ok ->
-            # Update participant activity in database
-            update_participant_activity(session_id, user_id)
-            
-            # The SessionServer automatically broadcasts the location update
-            # via Phoenix.PubSub, so we don't need to broadcast here
-            
-            {:noreply, socket}
-
-          {:error, reason} ->
-            Logger.error("Failed to store location for user #{user_id}: #{inspect(reason)}")
-            {:reply, {:error, %{reason: "failed_to_store_location"}}, socket}
-        end
+        # Update participant activity in database
+        update_participant_activity(session_id, user_id)
+        
+        # Broadcast location update to all participants in session
+        broadcast_location_update(session_id, user_id, location_data)
+        
+        {:noreply, socket}
 
       {:error, reason} ->
         Logger.warning("Invalid location data from user #{user_id}: #{reason}")
@@ -125,8 +106,7 @@ defmodule LocationSharingWeb.LocationChannel do
     
     Logger.debug("Ping from user #{user_id}")
     
-    # Update participant activity in both SessionServer and database
-    SessionServer.update_activity(session_id, user_id)
+    # Update participant activity in database
     update_participant_activity(session_id, user_id)
     
     {:reply, {:ok, %{type: "pong", data: %{}}}, socket}
@@ -182,17 +162,7 @@ defmodule LocationSharingWeb.LocationChannel do
     
     Logger.info("User #{user_id} disconnected from session #{session_id}: #{inspect(reason)}")
     
-    # Remove participant from SessionServer
-    case SessionServer.remove_participant(session_id, user_id) do
-      :ok ->
-        Logger.debug("User #{user_id} removed from SessionServer")
-      
-      {:error, :session_not_found} ->
-        Logger.debug("SessionServer not found for session #{session_id}")
-      
-      {:error, reason} ->
-        Logger.warning("Failed to remove user #{user_id} from SessionServer: #{reason}")
-    end
+    # Participant disconnect handled automatically by WebSocket connection
     
     # Note: The database participant record is kept for audit purposes
     # The cleanup worker will mark inactive participants
@@ -259,33 +229,37 @@ defmodule LocationSharingWeb.LocationChannel do
   end
 
   defp send_initial_state(socket, session_id) do
-    # Send current participants
-    case SessionServer.get_participants(session_id) do
-      {:ok, participants} ->
-        # Filter out the joining user from the participants list
-        filtered_participants = Enum.reject(participants, fn participant ->
-          participant[:user_id] == socket.assigns.user_id
-        end)
-        
-        push(socket, "initial_participants", %{participants: filtered_participants})
-      
-      {:error, _} ->
-        Logger.warning("Could not fetch initial participants for session #{session_id}")
-    end
+    # Send current participants from database
+    participants = 
+      Participant.active_for_session(session_id)
+      |> Repo.all()
+      |> Enum.reject(fn participant -> participant.user_id == socket.assigns.user_id end)
+      |> Enum.map(fn participant ->
+        %{
+          user_id: participant.user_id,
+          display_name: participant.display_name,
+          avatar_color: participant.avatar_color
+        }
+      end)
     
-    # Send current locations
-    case SessionServer.get_locations(session_id) do
-      {:ok, locations} ->
-        # Don't send the joining user's own location back
-        filtered_locations = Enum.reject(locations, fn location ->
-          location[:user_id] == socket.assigns.user_id
-        end)
-        
-        push(socket, "initial_locations", %{locations: filtered_locations})
-      
-      {:error, _} ->
-        Logger.warning("Could not fetch initial locations for session #{session_id}")
-    end
+    push(socket, "initial_participants", %{participants: participants})
+    
+    # Note: Initial locations would need to be stored in database if persistence is required
+    # For now, participants will start receiving location updates after joining
+    Logger.debug("Sent initial state to user #{socket.assigns.user_id}")
+  end
+  
+  defp broadcast_location_update(session_id, user_id, location_data) do
+    message = %{
+      type: "location_update",
+      data: Map.put(location_data, :user_id, user_id)
+    }
+    
+    Phoenix.PubSub.broadcast(
+      LocationSharing.PubSub,
+      "session:#{session_id}",
+      {:location_update, message}
+    )
   end
 
 end
