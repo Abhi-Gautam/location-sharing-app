@@ -6,6 +6,7 @@ set -e
 
 # --- Configuration ---
 ELIXIR_PORT=4000
+FLUTTER_PORT=52778
 DB_PORT=5432
 
 # --- Colors for Output ---
@@ -117,7 +118,7 @@ start_elixir_backend() {
 
   cd backend_elixir
   log_info "Starting Phoenix server at http://localhost:$ELIXIR_PORT"
-  if mix phx.server > ../backend_elixir/elixir_server.log 2>&1 &
+  if mix phx.server > elixir_server.log 2>&1 &
   then
     cd ..
     sleep 3
@@ -139,14 +140,25 @@ start_flutter_app() {
   log_info "Starting Flutter app..."
   check_project_root
 
+  if check_port $FLUTTER_PORT; then
+    log_warning "Port $FLUTTER_PORT is already in use. Flutter app may already be running."
+    return 1
+  fi
+
   cd mobile_app
-  log_info "Starting Flutter app in Chrome..."
-  if flutter run -d chrome > flutter_app.log 2>&1 &
+  log_info "Starting Flutter web server on port $FLUTTER_PORT..."
+  if flutter run -d web-server --web-port $FLUTTER_PORT > flutter_server.log 2>&1 &
   then
     cd ..
-    log_success "Flutter app started successfully"
-    log_info "Flutter app should open in Chrome automatically"
-    return 0
+    sleep 5
+    if check_port $FLUTTER_PORT; then
+      log_success "Flutter app started successfully on port $FLUTTER_PORT"
+      log_info "Access the app at: http://localhost:$FLUTTER_PORT"
+      return 0
+    else
+      log_error "Flutter app failed to start properly."
+      return 1
+    fi
   else
     cd ..
     log_error "Failed to start Flutter app."
@@ -175,8 +187,8 @@ start_full_stack() {
 
   log_success "✅ Full stack started successfully!"
   log_info "🌐 Elixir backend: http://localhost:$ELIXIR_PORT"
-  log_info "📱 Flutter app: running in Chrome"
-  log_info "📊 Logs: backend_elixir/elixir_server.log, mobile_app/flutter_app.log"
+  log_info "📱 Flutter app: http://localhost:$FLUTTER_PORT"
+  log_info "📊 Logs: backend_elixir/elixir_server.log, mobile_app/flutter_server.log"
 }
 
 stop_services() {
@@ -194,6 +206,56 @@ stop_services() {
   docker-compose down || true
 
   log_success "All services stopped."
+}
+
+restart_services() {
+  log_info "Restarting all services..."
+  stop_services
+  sleep 2
+  start_full_stack
+}
+
+health_check() {
+  log_info "Running health checks..."
+  
+  # Check Elixir backend health
+  if check_port $ELIXIR_PORT; then
+    log_info "Testing Elixir backend..."
+    if curl -s http://localhost:$ELIXIR_PORT/health > /dev/null; then
+      log_success "✅ Elixir backend is healthy"
+    else
+      log_error "❌ Elixir backend is not responding properly"
+      return 1
+    fi
+  else
+    log_error "❌ Elixir backend is not running"
+    return 1
+  fi
+
+  # Check Flutter frontend
+  if check_port $FLUTTER_PORT; then
+    log_info "Testing Flutter frontend..."
+    if curl -s http://localhost:$FLUTTER_PORT > /dev/null; then
+      log_success "✅ Flutter frontend is healthy"
+    else
+      log_error "❌ Flutter frontend is not responding properly"
+      return 1
+    fi
+  else
+    log_error "❌ Flutter frontend is not running"
+    return 1
+  fi
+
+  # Check PostgreSQL
+  if check_port $DB_PORT; then
+    log_success "✅ PostgreSQL is running"
+  else
+    log_error "❌ PostgreSQL is not running"
+    return 1
+  fi
+
+  log_success "🎉 All services are healthy!"
+  return 0
 }
 
 status() {
@@ -216,9 +278,9 @@ status() {
     echo "❌ PostgreSQL: Not running"
   fi
 
-  # Check Flutter processes
-  if pgrep -f "flutter run" > /dev/null; then
-    echo "✅ Flutter app: Running"
+  # Check Flutter web server
+  if check_port $FLUTTER_PORT; then
+    echo "✅ Flutter app: Running on port $FLUTTER_PORT"
   else
     echo "❌ Flutter app: Not running"
   fi
@@ -234,16 +296,20 @@ show_help() {
   echo "Commands:"
   echo "  --setup              Initial project setup (run once)"
   echo "  --start              Start full application (Elixir + Flutter)"
-  echo "  --backend-elixir     Start only Elixir backend"
-  echo "  --flutter-only       Start only Flutter app"
+  echo "  --elixir             Start only Elixir backend"
+  echo "  --flutter            Start only Flutter app"
   echo "  --stop               Stop all services"
+  echo "  --restart            Restart all services"
   echo "  --status             Check service status"
+  echo "  --health             Run health checks on all services"
   echo "  --help               Show this help message"
   echo ""
   echo "Examples:"
   echo "  $0 --setup          # First time setup"
   echo "  $0 --start          # Start everything"
+  echo "  $0 --restart        # Restart everything"
   echo "  $0 --status         # Check what's running"
+  echo "  $0 --health         # Test if services are working"
   echo "  $0 --stop           # Stop everything"
 }
 
@@ -262,18 +328,24 @@ case "$1" in
   --start)
     start_full_stack
     ;;
-  --backend-elixir)
+  --elixir)
     start_infrastructure
     start_elixir_backend
     ;;
-  --flutter-only)
+  --flutter)
     start_flutter_app
     ;;
   --stop)
     stop_services
     ;;
+  --restart)
+    restart_services
+    ;;
   --status)
     status
+    ;;
+  --health)
+    health_check
     ;;
   --help)
     show_help
