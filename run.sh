@@ -302,6 +302,9 @@ show_help() {
   echo "  --restart            Restart all services"
   echo "  --status             Check service status"
   echo "  --health             Run health checks on all services"
+  echo "  --test               Run API-based tests (recommended)"
+  echo "  --test-api           Run API-based tests"
+  echo "  --test-ui            Run UI-based visual tests (resource intensive)"
   echo "  --help               Show this help message"
   echo ""
   echo "Examples:"
@@ -310,6 +313,7 @@ show_help() {
   echo "  $0 --restart        # Restart everything"
   echo "  $0 --status         # Check what's running"
   echo "  $0 --health         # Test if services are working"
+  echo "  $0 --test           # Run API-based tests"
   echo "  $0 --stop           # Stop everything"
 }
 
@@ -346,6 +350,27 @@ case "$1" in
     ;;
   --health)
     health_check
+    ;;
+  --test|--test-api)
+    log_info "Running API-based tests..."
+    cd testing
+    if [[ -f "run-api-tests.sh" ]]; then
+      ./run-api-tests.sh basic
+    else
+      log_error "run-api-tests.sh not found in testing directory"
+      exit 1
+    fi
+    ;;
+  --test-ui)
+    log_warning "UI-based testing is resource intensive"
+    log_info "Running UI-based visual tests..."
+    cd testing
+    if [[ -f "run-ui-tests.sh" ]]; then
+      ./run-ui-tests.sh
+    else
+      log_error "run-ui-tests.sh not found in testing directory"
+      exit 1
+    fi
     ;;
   --help)
     show_help

@@ -243,3 +243,69 @@ Database-centric approach provides reliable coordination:
 - Phoenix PubSub for message broadcasting
 - Direct database queries for participant counts
 - No complex in-memory state to maintain
+
+## Testing
+
+### API-Based Testing (Recommended)
+The preferred way to test the application is using API-based testing, which creates sessions and participants programmatically:
+
+```bash
+cd testing
+
+# Run basic API test (2 sessions, 3 participants each)
+./run-api-tests.sh basic
+
+# Run with auto-start services
+./run-api-tests.sh --start-backend --start-flutter basic
+
+# Run stress test
+./run-api-tests.sh stress
+
+# Available scenarios:
+# - basic: 2 sessions with 3 participants each
+# - small: 1 session with 2 participants  
+# - medium: 3 sessions with 5 participants each
+# - stress: 5 sessions with 8 participants each
+# - geographic: 3 location-themed sessions
+```
+
+### UI-Based Visual Testing
+For visual regression testing with automated browsers:
+
+```bash
+cd testing/visual-tests
+
+# Run quick visual test
+./quick-test.sh
+
+# Run full visual test suite
+./run-visual-tests.sh --scenario medium
+```
+
+Note: UI-based testing spawns multiple browser instances and is resource-intensive. Use API-based testing for most scenarios.
+
+### Location Simulator
+Simulate participant movement for testing:
+
+```bash
+cd testing
+
+# Create test sessions first
+./run-api-tests.sh basic
+
+# Run location simulator with generated session data
+node location-simulator.js session-data-basic.json
+```
+
+## Troubleshooting
+
+### WebSocket/Location Issues
+1. **Location updates not visible**: Check browser console for Phoenix Channel errors
+2. **WebSocket disconnections**: Verify JWT token is valid and not expired
+3. **Missing participants**: Ensure Phoenix Channel join succeeded (look for "channel_joined" message)
+
+### Phoenix Channel Message Format
+The WebSocket service handles Phoenix Channel protocol:
+- Outgoing: `{topic, event, payload, ref}`
+- Incoming: Automatic conversion between `lat/lng` and `latitude/longitude`
+- Join flow: Automatic `phx_join` on connection

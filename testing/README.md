@@ -1,8 +1,45 @@
-# Visual Testing Framework
+# Location Sharing Testing Framework
 
-This comprehensive testing framework enables visual testing, load testing, and performance analysis for the location sharing application.
+This comprehensive testing framework provides multiple approaches for testing the location sharing application, with API-based testing as the recommended default.
 
-## Quick Start
+## Quick Start - API-Based Testing (Recommended)
+
+API-based testing creates sessions and participants programmatically without spawning browser instances, making it efficient and reliable.
+
+### 1. Basic Setup
+```bash
+# From project root
+cd testing
+
+# Check if backend is running
+./run-api-tests.sh --help
+```
+
+### 2. Run API Tests
+```bash
+# Basic test (2 sessions, 3 participants each)
+./run-api-tests.sh basic
+
+# Auto-start services if needed
+./run-api-tests.sh --start-backend --start-flutter basic
+
+# Run specific scenarios
+./run-api-tests.sh small    # 1 session, 2 participants
+./run-api-tests.sh medium   # 3 sessions, 5 participants each
+./run-api-tests.sh stress   # 5 sessions, 8 participants each
+```
+
+### 3. Test with Location Simulator
+```bash
+# After creating sessions with API tests
+node location-simulator.js session-data-basic.json
+
+# The simulator will move participants around in real-time
+```
+
+## UI-Based Visual Testing
+
+For visual regression testing and browser automation:
 
 ### 1. Setup
 ```bash
@@ -15,7 +52,7 @@ npm install
 # Other: https://k6.io/docs/getting-started/installation/
 ```
 
-### 2. Run Basic Visual Test
+### 2. Run Visual Tests
 ```bash
 # Light test (10 users, 5 minutes)
 ./run-visual-tests.sh
@@ -37,6 +74,8 @@ npm install
 # http://localhost:3001/map - Live location map
 # http://localhost:3001/metrics - Performance metrics
 ```
+
+**Note**: UI-based testing spawns multiple browser instances and is resource-intensive. Use API-based testing for most scenarios.
 
 ## Testing Scenarios
 
