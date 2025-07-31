@@ -216,7 +216,7 @@ class ParticipantSimulator {
 
         case 'location_update':
           // Handle incoming location updates from other participants
-          logInfo(`${this.displayName} received location update from ${payload.data?.user_id}`);
+          logInfo(`${this.displayName} received location update from ${payload.user_id}`);
           break;
 
         case 'participant_joined':

@@ -340,15 +340,30 @@ class SessionNotifier extends StateNotifier<SessionState> {
   /// Handle location update
   void _handleLocationUpdate(WebSocketMessage message) {
     try {
+      print('👥 Handling location update message: ${message.toJson()}');
       final userId = message.data['user_id'] as String?;
       final location = message.location;
       
+      print('👥 Parsed user_id: $userId, location: ${location?.toString()}');
+      
       if (userId != null && location != null) {
+        print('👥 Updating participant $userId location to ${location.latitude}, ${location.longitude}');
         final updatedParticipants = state.participants.updateLocation(userId, location);
+        print('👥 Updated participants count: ${updatedParticipants.count}');
+        
+        // Debug: Print all participants and their locations
+        for (final p in updatedParticipants.participants) {
+          print('👥 Participant ${p.userId}: ${p.displayName}, location: ${p.currentLocation?.toString() ?? "NO LOCATION"}');
+        }
+        
         state = state.copyWith(participants: updatedParticipants);
+        print('👥 State updated with new participants');
+      } else {
+        print('❌ Invalid location update - userId: $userId, location: $location');
       }
     } catch (e) {
-      print('Error handling location update: $e');
+      print('❌ Error handling location update: $e');
+      print('❌ Message was: ${message.toJson()}');
     }
   }
 

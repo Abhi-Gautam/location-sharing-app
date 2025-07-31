@@ -63,24 +63,68 @@ class WebSocketService {
   void sendLocationUpdate(LocationModel.Location location) {
     if (!_isConnected) return;
 
-    final message = WebSocketMessage(
-      type: AppConstants.wsLocationUpdate,
-      data: location.toApiMap(),
-    );
+    // Send as Phoenix Channel message format
+    final phoenixMessage = {
+      'topic': 'location:$_sessionId',
+      'event': 'location_update',
+      'payload': {
+        'lat': location.latitude,
+        'lng': location.longitude,
+        'accuracy': location.accuracy,
+        'timestamp': location.timestamp.millisecondsSinceEpoch,
+      },
+      'ref': _generateRef(),
+    };
 
-    _sendMessage(message);
+    _sendPhoenixMessage(phoenixMessage);
   }
 
   /// Send ping message
   void sendPing() {
     if (!_isConnected) return;
 
-    final message = WebSocketMessage(
-      type: AppConstants.wsPing,
-      data: {},
-    );
+    // Send as Phoenix Channel ping
+    final phoenixMessage = {
+      'topic': 'phoenix',
+      'event': 'heartbeat',
+      'payload': {},
+      'ref': _generateRef(),
+    };
 
-    _sendMessage(message);
+    _sendPhoenixMessage(phoenixMessage);
+  }
+
+  /// Send Phoenix Channel message
+  void _sendPhoenixMessage(Map<String, dynamic> message) {
+    if (!_isConnected || _channel == null) return;
+
+    try {
+      final json = jsonEncode(message);
+      _channel!.sink.add(json);
+      print('Sent Phoenix message: ${message['event']} to ${message['topic']}');
+    } catch (e) {
+      print('Error sending Phoenix message: $e');
+    }
+  }
+
+  /// Join Phoenix Channel
+  void _joinPhoenixChannel() {
+    if (!_isConnected || _sessionId == null) return;
+
+    final joinMessage = {
+      'topic': 'location:$_sessionId',
+      'event': 'phx_join',
+      'payload': {},
+      'ref': _generateRef(),
+    };
+
+    print('Joining Phoenix Channel: location:$_sessionId');
+    _sendPhoenixMessage(joinMessage);
+  }
+
+  /// Generate Phoenix Channel reference
+  String _generateRef() {
+    return DateTime.now().millisecondsSinceEpoch.toString();
   }
 
   /// Internal connection logic
@@ -111,6 +155,9 @@ class WebSocketService {
 
       // Start ping timer
       _startPingTimer();
+
+      // Join Phoenix Channel
+      _joinPhoenixChannel();
 
       // Emit connection event
       _emitMessage(WebSocketMessage(
@@ -147,21 +194,133 @@ class WebSocketService {
   /// Handle incoming messages
   void _handleMessage(dynamic data) {
     try {
+      print('🔄 Raw WebSocket message received: $data');
       final json = jsonDecode(data as String) as Map<String, dynamic>;
-      final message = WebSocketMessage.fromJson(json);
+      print('🔄 Parsed JSON: $json');
       
-      // Handle pong messages internally
-      if (message.type == AppConstants.wsPong) {
-        return;
-      }
+      // Check if this is a Phoenix Channel message format
+      if (json.containsKey('event') && json.containsKey('payload')) {
+        print('🔄 Detected Phoenix Channel message format');
+        _handlePhoenixChannelMessage(json);
+      } else {
+        print('🔄 Detected custom WebSocket message format');
+        // Handle custom WebSocket message format
+        final message = WebSocketMessage.fromJson(json);
+        
+        // Handle pong messages internally
+        if (message.type == AppConstants.wsPong) {
+          return;
+        }
 
-      _emitMessage(message);
+        _emitMessage(message);
+      }
     } catch (e) {
-      print('Error parsing WebSocket message: $e');
+      print('❌ Error parsing WebSocket message: $e');
+      print('❌ Raw data was: $data');
       _emitMessage(WebSocketMessage(
         type: 'error',
         data: {'message': 'Failed to parse message: $e'},
       ));
+    }
+  }
+
+  /// Handle Phoenix Channel message format
+  void _handlePhoenixChannelMessage(Map<String, dynamic> json) {
+    final event = json['event'] as String?;
+    final payload = json['payload'] as Map<String, dynamic>? ?? {};
+    
+    print('Received Phoenix Channel message: event=$event');
+    
+    switch (event) {
+      case 'location_update':
+        print('Processing Phoenix location update: $payload');
+        _handlePhoenixLocationUpdate(payload);
+        break;
+      case 'participant_joined':
+        _handlePhoenixParticipantJoined(payload);
+        break;
+      case 'participant_left':
+        _handlePhoenixParticipantLeft(payload);
+        break;
+      case 'phx_reply':
+        // Handle Phoenix Channel replies (join confirmations, etc.)
+        final replyPayload = json['payload'] as Map<String, dynamic>? ?? {};
+        final status = replyPayload['status'] as String?;
+        
+        if (status == 'ok') {
+          print('Successfully joined Phoenix Channel');
+          _emitMessage(WebSocketMessage(type: 'channel_joined', data: {}));
+        } else {
+          print('Failed to join Phoenix Channel: ${replyPayload}');
+          _emitMessage(WebSocketMessage(type: 'channel_error', data: replyPayload));
+        }
+        break;
+      default:
+        print('Unhandled Phoenix Channel event: $event');
+    }
+  }
+  
+  /// Handle Phoenix Channel location update
+  void _handlePhoenixLocationUpdate(Map<String, dynamic> payload) {
+    try {
+      print('🗺️ Processing Phoenix location update: $payload');
+      
+      // Convert Phoenix Channel format to our custom format
+      final customMessage = WebSocketMessage(
+        type: AppConstants.wsLocationUpdate,
+        data: {
+          'user_id': payload['user_id'],
+          'latitude': payload['lat'], // Phoenix uses 'lat'
+          'longitude': payload['lng'], // Phoenix uses 'lng'
+          'accuracy': payload['accuracy'],
+          'timestamp': _formatTimestamp(payload['timestamp']),
+        },
+      );
+      
+      print('🗺️ Converted to custom message: ${customMessage.toJson()}');
+      _emitMessage(customMessage);
+    } catch (e) {
+      print('❌ Error handling Phoenix location update: $e');
+      print('❌ Payload was: $payload');
+    }
+  }
+  
+  /// Handle Phoenix Channel participant joined
+  void _handlePhoenixParticipantJoined(Map<String, dynamic> payload) {
+    try {
+      final customMessage = WebSocketMessage(
+        type: AppConstants.wsParticipantJoined,
+        data: payload,
+      );
+      
+      _emitMessage(customMessage);
+    } catch (e) {
+      print('Error handling Phoenix participant joined: $e');
+    }
+  }
+  
+  /// Handle Phoenix Channel participant left
+  void _handlePhoenixParticipantLeft(Map<String, dynamic> payload) {
+    try {
+      final customMessage = WebSocketMessage(
+        type: AppConstants.wsParticipantLeft,
+        data: payload,
+      );
+      
+      _emitMessage(customMessage);
+    } catch (e) {
+      print('Error handling Phoenix participant left: $e');
+    }
+  }
+  
+  /// Format timestamp from Phoenix Channel (number) to ISO string
+  String _formatTimestamp(dynamic timestamp) {
+    if (timestamp is int) {
+      return DateTime.fromMillisecondsSinceEpoch(timestamp).toIso8601String();
+    } else if (timestamp is String) {
+      return timestamp; // Already formatted
+    } else {
+      return DateTime.now().toIso8601String();
     }
   }
 
@@ -198,7 +357,7 @@ class WebSocketService {
     }
   }
 
-  /// Send message to WebSocket
+  /// Send message to WebSocket (deprecated - use _sendPhoenixMessage)
   void _sendMessage(WebSocketMessage message) {
     if (!_isConnected || _channel == null) return;
 
@@ -329,16 +488,38 @@ extension WebSocketMessageExtension on WebSocketMessage {
   LocationModel.Location? get location {
     if (!isLocationUpdate) return null;
     try {
+      // Handle both 'latitude'/'longitude' and 'lat'/'lng' formats
+      double? lat = (data['latitude'] as num?)?.toDouble() ?? (data['lat'] as num?)?.toDouble();
+      double? lng = (data['longitude'] as num?)?.toDouble() ?? (data['lng'] as num?)?.toDouble();
+      
+      if (lat == null || lng == null) {
+        print('Invalid location data: missing lat/lng coordinates');
+        return null;
+      }
+      
+      // Handle timestamp as either string or number
+      DateTime timestamp;
+      final timestampData = data['timestamp'];
+      if (timestampData is String) {
+        timestamp = DateTime.parse(timestampData);
+      } else if (timestampData is int) {
+        timestamp = DateTime.fromMillisecondsSinceEpoch(timestampData);
+      } else {
+        timestamp = DateTime.now();
+      }
+      
       return LocationModel.Location(
-        latitude: (data['latitude'] as num).toDouble(),
-        longitude: (data['longitude'] as num).toDouble(),
-        timestamp: DateTime.parse(data['timestamp'] as String),
+        latitude: lat,
+        longitude: lng,
+        timestamp: timestamp,
         accuracy: (data['accuracy'] as num?)?.toDouble() ?? 0.0,
         altitude: (data['altitude'] as num?)?.toDouble() ?? 0.0,
         speed: (data['speed'] as num?)?.toDouble() ?? 0.0,
         heading: (data['heading'] as num?)?.toDouble() ?? 0.0,
       );
     } catch (e) {
+      print('Error parsing location from WebSocket message: $e');
+      print('Message data: ${data}');
       return null;
     }
   }

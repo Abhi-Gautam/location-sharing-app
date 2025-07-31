@@ -28,8 +28,7 @@ defmodule LocationSharingWeb.LocationChannel do
           {:ok, _session} ->
             Logger.info("User #{user_id} joined location channel for session #{session_id}")
             
-            # Subscribe to session events
-            Phoenix.PubSub.subscribe(LocationSharing.PubSub, "session:#{session_id}")
+            # Note: Direct channel broadcasting used instead of PubSub for location updates
             
             # Verify participant exists in database
             case Repo.one(Participant.by_session_and_user(session_id, user_id)) do
@@ -143,12 +142,7 @@ defmodule LocationSharingWeb.LocationChannel do
     {:stop, :normal, socket}
   end
 
-  @impl true
-  def handle_info({:location_update, message}, socket) do
-    # This would be for forwarding specific location updates if needed
-    push(socket, "location_update", message)
-    {:noreply, socket}
-  end
+  # Location updates now broadcast directly to channel, no handle_info needed
 
   @impl true
   def handle_info(info, socket) do
@@ -250,16 +244,15 @@ defmodule LocationSharingWeb.LocationChannel do
   end
   
   defp broadcast_location_update(session_id, user_id, location_data) do
-    message = %{
-      type: "location_update",
-      data: Map.put(location_data, :user_id, user_id)
-    }
-    
-    Phoenix.PubSub.broadcast(
-      LocationSharing.PubSub,
-      "session:#{session_id}",
-      {:location_update, message}
+    # Broadcast directly to all clients in the location channel
+    # This sends the message to ALL clients subscribed to "location:#{session_id}"
+    LocationSharingWeb.Endpoint.broadcast(
+      "location:#{session_id}",
+      "location_update", 
+      Map.put(location_data, :user_id, user_id)
     )
+    
+    Logger.debug("Broadcasted location update from user #{user_id} to session #{session_id}")
   end
 
 end

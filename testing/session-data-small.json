@@ -2,19 +2,19 @@
   "scenario": "small",
   "sessions": [
     {
-      "sessionId": "e75e5ea4-6222-49e9-bf07-0b2137677f16",
+      "sessionId": "fb49f473-f37b-46f5-8f32-6f7f57e82bc2",
       "sessionName": "Small Test Session",
-      "joinLink": "http://localhost:4000/join/e75e5ea4-6222-49e9-bf07-0b2137677f16",
+      "joinLink": "http://localhost:4000/join/fb49f473-f37b-46f5-8f32-6f7f57e82bc2",
       "participants": [
         {
-          "userId": "user_56faa83a8eed0742",
+          "userId": "user_b75de975a9970515",
           "displayName": "Small User 1-1",
-          "websocketToken": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJsb2NhdGlvbl9zaGFyaW5nIiwiZGlzcGxheV9uYW1lIjoiU21hbGwgVXNlciAxLTEiLCJleHAiOjE3NTYzODk3NDUsImlhdCI6MTc1Mzk3MDU0NSwiaXNzIjoibG9jYXRpb25fc2hhcmluZyIsImp0aSI6Ijg4ZWZkMzEzLTFjNzQtNDQxMy1hNDcyLWU1YTVkZDBkN2YxNiIsIm5iZiI6MTc1Mzk3MDU0NCwic2Vzc2lvbl9pZCI6ImU3NWU1ZWE0LTYyMjItNDllOS1iZjA3LTBiMjEzNzY3N2YxNiIsInN1YiI6ImI5ZDJhMTQ1LTc5N2UtNDBiOC04MWFlLTJlOWZhY2JkYWUyZCIsInR5cCI6ImFjY2VzcyIsInVzZXJfaWQiOiJ1c2VyXzU2ZmFhODNhOGVlZDA3NDIifQ.Kzq6VaSmLkhugE8FtzUuQ1muQXoM_udz7Wa3vWohmaak1EWm0QL-g0E9WAoohh__As4YOO0KR7Uy6D9l-sScSQ"
+          "websocketToken": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJsb2NhdGlvbl9zaGFyaW5nIiwiZGlzcGxheV9uYW1lIjoiU21hbGwgVXNlciAxLTEiLCJleHAiOjE3NTY0MDU5MTgsImlhdCI6MTc1Mzk4NjcxOCwiaXNzIjoibG9jYXRpb25fc2hhcmluZyIsImp0aSI6IjFiMTFiNzc0LTFiMzktNGU0NC1hMWFjLWMxYTNmMjFjZDI1ZCIsIm5iZiI6MTc1Mzk4NjcxNywic2Vzc2lvbl9pZCI6ImZiNDlmNDczLWYzN2ItNDZmNS04ZjMyLTZmN2Y1N2U4MmJjMiIsInN1YiI6IjMxMWI5MjAyLTExOGItNGRmYi04ZGRmLWE1OTEzZWQxZjBmNiIsInR5cCI6ImFjY2VzcyIsInVzZXJfaWQiOiJ1c2VyX2I3NWRlOTc1YTk5NzA1MTUifQ.an8u19CZH51ShXhXRR5CV5odHUwN86ZPdVlcxQBcrAcv1VU0vpbvBmDosJPg9YMmMtr5uRokWBRjgnR8lTcgzA"
         },
         {
-          "userId": "user_a5eb70b205faf362",
+          "userId": "user_572b1b9cedfd3472",
           "displayName": "Small User 1-2",
-          "websocketToken": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJsb2NhdGlvbl9zaGFyaW5nIiwiZGlzcGxheV9uYW1lIjoiU21hbGwgVXNlciAxLTIiLCJleHAiOjE3NTYzODk3NDUsImlhdCI6MTc1Mzk3MDU0NSwiaXNzIjoibG9jYXRpb25fc2hhcmluZyIsImp0aSI6ImYyZDViZmVkLTI5MGEtNDJmMS04MzUxLWIxMmE2YTAyOTY3YiIsIm5iZiI6MTc1Mzk3MDU0NCwic2Vzc2lvbl9pZCI6ImU3NWU1ZWE0LTYyMjItNDllOS1iZjA3LTBiMjEzNzY3N2YxNiIsInN1YiI6ImM4YzhlMjhiLWQ2YzMtNDJmOC04MDNkLTVlNTg5YzIzNmVjZiIsInR5cCI6ImFjY2VzcyIsInVzZXJfaWQiOiJ1c2VyX2E1ZWI3MGIyMDVmYWYzNjIifQ.VjWa-QxnW_IJO0K4OwOCjvxMbVHiHXTa-5zLw_DsI2z6t562x3S995AM8fAq9wc68f7HGFWu_zwYm3bTA1o_kQ"
+          "websocketToken": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJsb2NhdGlvbl9zaGFyaW5nIiwiZGlzcGxheV9uYW1lIjoiU21hbGwgVXNlciAxLTIiLCJleHAiOjE3NTY0MDU5MTgsImlhdCI6MTc1Mzk4NjcxOCwiaXNzIjoibG9jYXRpb25fc2hhcmluZyIsImp0aSI6ImEwYjAzODk5LTEyMzQtNDgzNS05MjRkLTY2MjgwMWJhYWFmZSIsIm5iZiI6MTc1Mzk4NjcxNywic2Vzc2lvbl9pZCI6ImZiNDlmNDczLWYzN2ItNDZmNS04ZjMyLTZmN2Y1N2U4MmJjMiIsInN1YiI6IjIyNjIzMmEyLTE5YzItNDdjOC1iYTAzLTU3MjVmZWM0ZTE0YiIsInR5cCI6ImFjY2VzcyIsInVzZXJfaWQiOiJ1c2VyXzU3MmIxYjljZWRmZDM0NzIifQ.So_oP6rJNlsdnw5KMUPvRpuXmgKOfNghEbyMq3iZqMN-WLk2EhXf0YzNXtNRj8-RlswB22fywjC0QFVKKYntHg"
         }
       ]
     }
@@ -25,7 +25,7 @@
     "createdSessions": 1,
     "createdParticipants": 2
   },
-  "createdAt": "2025-07-31T14:02:25.231Z",
+  "createdAt": "2025-07-31T18:31:58.578Z",
   "simulatorInstructions": {
     "command": "node location-simulator.js session-data-small.json",
     "description": "Run this command to simulate participant locations and movement"
