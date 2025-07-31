@@ -1,2 +1,2 @@
 ExUnit.start()
-Ecto.Adapters.SQL.Sandbox.mode(BackendElixir.Repo, :manual)
+Ecto.Adapters.SQL.Sandbox.mode(LocationSharing.Repo, :manual)

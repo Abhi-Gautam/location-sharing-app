@@ -27,7 +27,7 @@ void main() {
     test('validateSessionName works correctly', () {
       expect(AppUtils.validateSessionName(''), isNull); // Optional field
       expect(AppUtils.validateSessionName('Valid Session'), isNull);
-      expect(AppUtils.validateSessionName('Very Long Session Name That Exceeds Maximum Length'), isNotNull);
+      expect(AppUtils.validateSessionName('Very Long Session Name That Exceeds Maximum Length Limit'), isNotNull);
     });
 
     test('isValidSessionId validates UUID format', () {

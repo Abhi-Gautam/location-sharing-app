@@ -125,7 +125,9 @@ class AppUtils {
 
   /// Generate initials from display name
   static String generateInitials(String displayName) {
-    final words = displayName.trim().split(' ');
+    if (displayName.trim().isEmpty) return 'U';
+    
+    final words = displayName.trim().split(' ').where((word) => word.isNotEmpty).toList();
     if (words.isEmpty) return 'U';
     
     if (words.length == 1) {

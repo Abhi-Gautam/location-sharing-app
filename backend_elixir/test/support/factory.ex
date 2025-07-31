@@ -7,43 +7,35 @@ defmodule LocationSharing.Factory do
   alias LocationSharing.Sessions.{Session, Participant}
 
   def build(:session) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
     %Session{
       id: Ecto.UUID.generate(),
       name: "Test Session #{System.unique_integer([:positive])}",
       creator_id: Ecto.UUID.generate(),
       is_active: true,
-      last_activity: DateTime.utc_now(),
-      expires_at: DateTime.add(DateTime.utc_now(), 24 * 3600, :second),
-      created_at: DateTime.utc_now(),
-      updated_at: DateTime.utc_now()
+      last_activity: now,
+      expires_at: DateTime.add(now, 24 * 3600, :second),
+      created_at: now,
+      updated_at: now
     }
   end
 
-  def build(:session, attrs) do
-    build(:session)
-    |> struct!(attrs)
-  end
-
   def build(:participant) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
     %Participant{
       id: Ecto.UUID.generate(),
       session_id: Ecto.UUID.generate(),
       user_id: "user_#{:crypto.strong_rand_bytes(8) |> Base.encode16(case: :lower)}",
       display_name: "User #{System.unique_integer([:positive])}",
       avatar_color: "#FF5733",
-      last_seen: DateTime.utc_now(),
+      last_seen: now,
       is_active: true,
-      joined_at: DateTime.utc_now(),
-      updated_at: DateTime.utc_now()
+      joined_at: now,
+      updated_at: now
     }
   end
 
-  def build(:participant, attrs) do
-    build(:participant)
-    |> struct!(attrs)
-  end
-
-  def build(factory_name, attrs) do
+  def build(factory_name, attrs) when is_list(attrs) do
     factory_name |> build() |> struct!(attrs)
   end
 

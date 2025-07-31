@@ -1,0 +1,99 @@
+{
+  "scenarios": {
+    "basic": {
+      "sessions": 2,
+      "participantsPerSession": 3,
+      "sessionNames": [
+        "Basic Test Session 1",
+        "Basic Test Session 2"
+      ],
+      "participantNamePrefix": "Basic User",
+      "description": "Simple test with 2 sessions and 3 participants each"
+    },
+    "stress": {
+      "sessions": 5,
+      "participantsPerSession": 8,
+      "sessionNames": [
+        "Stress Test Alpha",
+        "Stress Test Beta", 
+        "Stress Test Gamma",
+        "Stress Test Delta",
+        "Stress Test Omega"
+      ],
+      "participantNamePrefix": "Stress User",
+      "description": "Stress test with 5 sessions and 8 participants each"
+    },
+    "small": {
+      "sessions": 1,
+      "participantsPerSession": 2,
+      "sessionNames": [
+        "Small Test Session"
+      ],
+      "participantNamePrefix": "Small User",
+      "description": "Minimal test with 1 session and 2 participants"
+    },
+    "medium": {
+      "sessions": 3,
+      "participantsPerSession": 5,
+      "sessionNames": [
+        "Medium Test Alpha",
+        "Medium Test Beta",
+        "Medium Test Gamma"
+      ],
+      "participantNamePrefix": "Medium User",
+      "description": "Medium scale test with 3 sessions and 5 participants each"
+    },
+    "geographic": {
+      "sessions": 3,
+      "participantsPerSession": 6,
+      "sessionNames": [
+        "San Francisco Team",
+        "New York Team",
+        "London Team"
+      ],
+      "participantNamePrefix": "Geo User",
+      "description": "Geographic distribution test with location-themed sessions"
+    }
+  },
+  "settings": {
+    "defaultSessionDurationMinutes": 1440,
+    "apiBaseUrl": "http://localhost:4000/api",
+    "flutterWebUrl": "http://localhost:52778",
+    "participantColors": [
+      "#FF6B6B",
+      "#4ECDC4", 
+      "#45B7D1",
+      "#96CEB4",
+      "#FFEAA7",
+      "#DDA0DD",
+      "#98D8C8",
+      "#F7DC6F",
+      "#48C9B0",
+      "#5DADE2",
+      "#AF7AC5",
+      "#F5B7B1"
+    ]
+  },
+  "instructions": {
+    "setup": [
+      "1. Start Elixir backend: ./run.sh --elixir",
+      "2. Start Flutter web app: ./run.sh --flutter", 
+      "3. Run session creator: node api-session-creator.js [scenario]"
+    ],
+    "testing": [
+      "1. Open Flutter app in browser: http://localhost:52778",
+      "2. Click 'Join Session' button",
+      "3. Enter Session ID from created sessions",
+      "4. Enter your display name",
+      "5. Join session and verify you see other participants on map",
+      "6. Test real-time location sharing and WebSocket functionality"
+    ],
+    "scenarios": {
+      "basic": "Good for initial testing and verification",
+      "small": "Quick smoke test with minimal participants",
+      "medium": "Balanced test for normal usage patterns",
+      "stress": "High load test with many participants",
+      "geographic": "Location-themed test for realistic scenarios"
+    }
+  }
+}

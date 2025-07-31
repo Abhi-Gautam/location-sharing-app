@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Real-time location sharing application built with **Elixir Phoenix** backend and **Flutter** mobile app. After comprehensive stress testing and complexity analysis, the project uses a single-backend architecture for optimal simplicity and performance.
+This is a real-time location sharing application built with **Elixir Phoenix backend** and **Flutter mobile app**. After comprehensive stress testing and complexity analysis, we selected a single-backend architecture for optimal simplicity and performance.
 
 - **Elixir Backend** (`backend_elixir/`): Unified Phoenix application with REST API and WebSocket Channels
 - **Flutter Mobile App** (`mobile_app/`): Cross-platform client for real-time location sharing
@@ -16,14 +16,17 @@ Real-time location sharing application built with **Elixir Phoenix** backend and
 # Initial setup (run once)
 ./run.sh --setup
 
-# Start Elixir backend + Flutter app  
+# Start full stack (Elixir backend + Flutter app + PostgreSQL)  
 ./run.sh --start
 
 # Start only Flutter app (requires backend already running)
-./run.sh --flutter-only
+./run.sh --flutter
 
 # Start only Elixir backend service
-./run.sh --backend-elixir
+./run.sh --elixir
+
+# Restart all services
+./run.sh --restart
 
 # Stop all services (backends, Flutter, Docker)
 ./run.sh --stop
@@ -31,8 +34,8 @@ Real-time location sharing application built with **Elixir Phoenix** backend and
 # Check status of all services
 ./run.sh --status
 
-# Restore database to clean state
-./run.sh --restore
+# Run health checks on all services
+./run.sh --health
 ```
 
 ### Backend Development
@@ -70,6 +73,7 @@ cd mobile_app
 flutter pub get
 
 # Development
+flutter run -d web-server --web-port 52778  # Run web server on port 52778
 flutter run -d chrome       # Run in Chrome browser
 flutter run                 # Run on connected device/emulator
 
@@ -84,22 +88,33 @@ dart format .              # Format code
 
 ## Architecture
 
+### Elixir-Only Architecture
+Single Phoenix application providing all backend services:
+- **REST API**: Session management, participant handling, authentication
+- **WebSocket Channels**: Real-time location updates and broadcasting
+- **BEAM Processes**: Session coordination and state management without external dependencies
+
+### Infrastructure
+- **Database**: PostgreSQL for session and participant data
+- **State Management**: Pure BEAM processes (no Redis dependency)
+- **Fault Tolerance**: OTP supervision trees for automatic recovery
+
 ### Backend Architecture (Elixir/Phoenix)
 
-The backend follows Phoenix's layered architecture with OTP supervision:
+The backend follows Phoenix's layered architecture with database-only state management:
 
 1. **Application Supervision Tree** (`lib/location_sharing/application.ex`)
-   - Sessions.Supervisor: Manages dynamic session processes
+   - Sessions.Supervisor: Manages session cleanup processes
    - Phoenix.PubSub: Real-time message broadcasting
-   - PromEx: Metrics collection
-   - Repo: Database connection pool
+   - Telemetry: Metrics collection
+   - Repo: PostgreSQL connection pool
 
 2. **Web Layer** (`lib/location_sharing_web/`)
    - **Router**: Defines REST endpoints and channel routes
    - **Controllers**: Handle HTTP requests
      - SessionController: Session CRUD operations
      - ParticipantController: Join/leave management
-     - HealthController: Kubernetes-ready health checks
+     - HealthController: Health checks
    - **Channels**: WebSocket communication
      - LocationChannel: Real-time location updates
      - UserSocket: JWT authentication for WebSockets
@@ -109,16 +124,16 @@ The backend follows Phoenix's layered architecture with OTP supervision:
      - Session schema with validation
      - Participant management
      - Cleanup worker for expired sessions
-   - **Process Architecture**: Each session runs as supervised GenServer
-     - Registry tracks active processes
-     - Fault tolerance via supervision trees
-     - No external state dependencies (pure BEAM)
+   - **Database-Centric Architecture**: All state stored in PostgreSQL
+     - Phoenix PubSub for real-time broadcasts
+     - Direct database queries for participant counts
+     - No in-memory session processes
 
 4. **Data Flow**:
    ```
-   Client → REST API → Controller → Context → Database
+   Client → REST API → Controller → Context → PostgreSQL
                                           ↓
-   Client ← WebSocket ← Channel ← PubSub ← GenServer
+   Client ← WebSocket ← Channel ← PubSub ← Database
    ```
 
 ### Frontend Architecture (Flutter)
@@ -150,20 +165,21 @@ The mobile app uses Riverpod for state management:
 
 ### Key Design Decisions
 
-1. **Elixir-Only Architecture**: Single Phoenix app provides all services
-   - REST API + WebSocket in one deployment
-   - BEAM processes for state (no Redis)
-   - OTP supervision for fault tolerance
+1. **Database-Only State Management**: After removing SessionServer complexity
+   - All state stored in PostgreSQL for reliability
+   - Phoenix PubSub for real-time message broadcasting  
+   - No in-memory GenServer processes for session state
+   - Direct database queries for participant counts and session data
 
 2. **Ephemeral Sessions**: No user accounts required
-   - Unique session IDs
-   - Automatic expiration after 24 hours
-   - Manual departure support
+   - Unique session IDs with automatic generation
+   - Automatic expiration after 24 hours (configurable)
+   - Manual departure support via REST API
 
-3. **WebSocket Protocol**: Phoenix Channels with built-in features
+3. **WebSocket Protocol**: Phoenix Channels with JWT authentication
    - Automatic reconnection
-   - Heartbeat monitoring
-   - Message guarantees
+   - Heartbeat monitoring via ping/pong
+   - Real-time location updates every 2 seconds
 
 ## Development Workflow
 
@@ -187,8 +203,43 @@ mix ecto.migrate
 
 ### Service Ports
 - Elixir Phoenix: `localhost:4000`
+- Flutter Web Server: `localhost:52778` 
 - PostgreSQL: `localhost:5432`
 
 ### Logs
 - Backend: `backend_elixir/elixir_server.log`
-- Frontend: `mobile_app/flutter_app.log`
+- Frontend: `mobile_app/flutter_server.log`
+
+## Core Features (MVP)
+- Ephemeral session creation with shareable links
+- Real-time location sharing via WebSocket
+- Dynamic map view with all participants
+- No-signup session joining
+- Manual session departure
+
+## Development Notes
+
+### Session Management
+Sessions are ephemeral and temporary by design:
+- Unique session ID generation  
+- Real-time participant tracking via database + PubSub
+- Automatic cleanup on session end
+
+### WebSocket Architecture
+Phoenix Channels with built-in PubSub for real-time communication:
+- Location updates broadcast to session participants
+- Join/leave notifications
+- Connection health monitoring
+
+### Database Schema
+PostgreSQL stores:
+- Session metadata (name, expiration, creator)
+- Participant information (display name, avatar, activity)
+- All state is persistent and database-driven
+
+### State Management
+Database-centric approach provides reliable coordination:
+- All session state in PostgreSQL
+- Phoenix PubSub for message broadcasting
+- Direct database queries for participant counts
+- No complex in-memory state to maintain

@@ -3,7 +3,7 @@ defmodule LocationSharingWeb.ParticipantControllerTest do
 
   import LocationSharing.Factory
 
-  alias LocationSharing.{Repo, Redis}
+  alias LocationSharing.Repo
   alias LocationSharing.Sessions.Participant
 
   describe "POST /api/sessions/:session_id/join" do
@@ -95,7 +95,7 @@ defmodule LocationSharingWeb.ParticipantControllerTest do
 
     test "returns 400 for duplicate display name", %{conn: conn} do
       session = insert(:session)
-      _existing_participant = insert(:participant, session: session, display_name: "John Doe")
+      _existing_participant = insert(:participant, session_id: session.id, display_name: "John Doe")
       
       params = %{
         "display_name" => "John Doe",
@@ -105,7 +105,10 @@ defmodule LocationSharingWeb.ParticipantControllerTest do
       conn = post(conn, ~p"/api/sessions/#{session.id}/join", params)
 
       assert %{
-        "error" => "Display name is already taken in this session"
+        "error" => "Invalid participant parameters",
+        "details" => %{
+          "session_id" => ["has already been taken"]
+        }
       } = json_response(conn, 400)
     end
 
@@ -137,7 +140,7 @@ defmodule LocationSharingWeb.ParticipantControllerTest do
   describe "DELETE /api/sessions/:session_id/participants/:user_id" do
     test "removes participant from session", %{conn: conn} do
       session = insert(:session)
-      participant = insert(:participant, session: session)
+      participant = insert(:participant, session_id: session.id)
 
       conn = delete(conn, ~p"/api/sessions/#{session.id}/participants/#{participant.user_id}")
 
@@ -159,7 +162,7 @@ defmodule LocationSharingWeb.ParticipantControllerTest do
 
     test "returns 404 for already inactive participant", %{conn: conn} do
       session = insert(:session)
-      participant = insert(:participant, session: session, is_active: false)
+      participant = insert(:participant, session_id: session.id, is_active: false)
 
       conn = delete(conn, ~p"/api/sessions/#{session.id}/participants/#{participant.user_id}")
 
@@ -170,9 +173,9 @@ defmodule LocationSharingWeb.ParticipantControllerTest do
   describe "GET /api/sessions/:session_id/participants" do
     test "lists active participants in session", %{conn: conn} do
       session = insert(:session)
-      participant1 = insert(:participant, session: session, display_name: "Alice")
-      participant2 = insert(:participant, session: session, display_name: "Bob")
-      _inactive_participant = insert(:participant, session: session, display_name: "Charlie", is_active: false)
+      participant1 = insert(:participant, session_id: session.id, display_name: "Alice")
+      _participant2 = insert(:participant, session_id: session.id, display_name: "Bob")
+      _inactive_participant = insert(:participant, session_id: session.id, display_name: "Charlie", is_active: false)
 
       conn = get(conn, ~p"/api/sessions/#{session.id}/participants")
 

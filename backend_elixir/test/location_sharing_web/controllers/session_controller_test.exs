@@ -3,7 +3,7 @@ defmodule LocationSharingWeb.SessionControllerTest do
 
   import LocationSharing.Factory
 
-  alias LocationSharing.{Repo, Redis}
+  alias LocationSharing.Repo
   alias LocationSharing.Sessions.Session
 
   describe "POST /api/sessions" do
@@ -70,7 +70,6 @@ defmodule LocationSharingWeb.SessionControllerTest do
   describe "GET /api/sessions/:id" do
     test "returns session details for valid session", %{conn: conn} do
       session = insert(:session, name: "Test Session")
-      Redis.update_session_activity(session.id)
 
       conn = get(conn, ~p"/api/sessions/#{session.id}")
 
@@ -102,7 +101,7 @@ defmodule LocationSharingWeb.SessionControllerTest do
     end
 
     test "returns 404 for expired session", %{conn: conn} do
-      expires_at = DateTime.add(DateTime.utc_now(), -3600, :second)
+      expires_at = DateTime.add(DateTime.utc_now(), -3600, :second) |> DateTime.truncate(:second)
       session = insert(:session, expires_at: expires_at)
 
       conn = get(conn, ~p"/api/sessions/#{session.id}")

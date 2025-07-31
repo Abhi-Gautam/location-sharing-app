@@ -1,4 +1,4 @@
-defmodule BackendElixir.DataCase do
+defmodule LocationSharing.DataCase do
   @moduledoc """
   This module defines the setup for tests requiring
   access to the application's data layer.
@@ -10,7 +10,7 @@ defmodule BackendElixir.DataCase do
   we enable the SQL sandbox, so changes done to the database
   are reverted at the end of every test. If you are using
   PostgreSQL, you can even run database tests asynchronously
-  by setting `use BackendElixir.DataCase, async: true`, although
+  by setting `use LocationSharing.DataCase, async: true`, although
   this option is not recommended for other databases.
   """
 
@@ -18,17 +18,18 @@ defmodule BackendElixir.DataCase do
 
   using do
     quote do
-      alias BackendElixir.Repo
+      alias LocationSharing.Repo
 
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
-      import BackendElixir.DataCase
+      import LocationSharing.DataCase
+      import LocationSharing.Factory
     end
   end
 
   setup tags do
-    BackendElixir.DataCase.setup_sandbox(tags)
+    LocationSharing.DataCase.setup_sandbox(tags)
     :ok
   end
 
@@ -36,7 +37,7 @@ defmodule BackendElixir.DataCase do
   Sets up the sandbox based on the test tags.
   """
   def setup_sandbox(tags) do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(BackendElixir.Repo, shared: not tags[:async])
+    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(LocationSharing.Repo, shared: not tags[:async])
     on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
   end
 

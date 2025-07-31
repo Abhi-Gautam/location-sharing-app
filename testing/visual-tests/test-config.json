@@ -1,0 +1,155 @@
+{
+  "testFlow": {
+    "sessionName": "Integration Test Session",
+    "username": "Flutter Test User",
+    "observationTime": 30,
+    "takeScreenshots": true,
+    "screenshotPoints": [0, 15, 30]
+  },
+  "scenarios": {
+    "basic": {
+      "name": "Basic Single Session Test",
+      "sessions": 1,
+      "users": 3,
+      "duration": 30,
+      "movementPattern": "mixed",
+      "screenshotPoints": [0, 15, 30]
+    },
+    "multi-session": {
+      "name": "Multiple Sessions Test",
+      "sessions": 3,
+      "users": 4,
+      "duration": 45,
+      "movementPattern": "mixed",
+      "screenshotPoints": [0, 15, 30, 45]
+    },
+    "stress": {
+      "name": "Stress Test",
+      "sessions": 1,
+      "users": 10,
+      "duration": 60,
+      "movementPattern": "random",
+      "screenshotPoints": [0, 20, 40, 60]
+    },
+    "geographic": {
+      "name": "Geographic Distribution Test",
+      "sessions": 2,
+      "users": 10,
+      "duration": 120,
+      "movementPattern": "realistic",
+      "locations": ["san-francisco", "new-york", "london"],
+      "screenshotPoints": [0, 30, 60, 90, 120]
+    },
+    "quick": {
+      "name": "Quick Smoke Test",
+      "sessions": 1,
+      "users": 3,
+      "duration": 20,
+      "movementPattern": "walking",
+      "screenshotPoints": [0, 10, 20]
+    }
+  },
+  "flutter": {
+    "timeout": 30000,
+    "screenshotDirectory": "./integration_test/screenshots",
+    "actionDelay": 500,
+    "waitForAnimations": true
+  },
+  "ui": {
+    "flutterUrl": "http://localhost:52778",
+    "apiUrl": "http://localhost:4000/api",
+    "wsUrl": "ws://localhost:4000/socket",
+    "screenshotInterval": 10,
+    "videoRecording": false,
+    "waitForFlutterTimeout": 30000,
+    "actionDelay": 500
+  },
+  "movement": {
+    "updateInterval": 2000,
+    "patterns": {
+      "stationary": {
+        "speed": 0,
+        "description": "User stays in one place"
+      },
+      "walking": {
+        "speed": 1.4,
+        "description": "Average walking speed (m/s)"
+      },
+      "driving": {
+        "speed": 15,
+        "description": "City driving speed (m/s)"
+      },
+      "random": {
+        "speed": "variable",
+        "description": "Random movement pattern"
+      },
+      "mixed": {
+        "types": ["stationary", "walking", "driving"],
+        "description": "Mix of different movement types"
+      },
+      "realistic": {
+        "types": ["commute", "work", "lunch", "home"],
+        "description": "Realistic daily movement patterns"
+      }
+    },
+    "locations": {
+      "san-francisco": {
+        "center": { "lat": 37.7749, "lng": -122.4194 },
+        "bounds": {
+          "north": 37.8049,
+          "south": 37.7449,
+          "east": -122.3894,
+          "west": -122.4494
+        }
+      },
+      "new-york": {
+        "center": { "lat": 40.7128, "lng": -74.0060 },
+        "bounds": {
+          "north": 40.7428,
+          "south": 40.6828,
+          "east": -73.9760,
+          "west": -74.0360
+        }
+      },
+      "london": {
+        "center": { "lat": 51.5074, "lng": -0.1278 },
+        "bounds": {
+          "north": 51.5374,
+          "south": 51.4774,
+          "east": -0.0978,
+          "west": -0.1578
+        }
+      }
+    }
+  },
+  "browser": {
+    "headless": false,
+    "windowSize": {
+      "width": 1280,
+      "height": 720
+    },
+    "userAgent": "VisualTest/1.0",
+    "defaultTimeout": 30000,
+    "navigationTimeout": 30000,
+    "args": [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage"
+    ]
+  },
+  "participants": {
+    "namePrefix": "Test User",
+    "avatarColors": [
+      "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", 
+      "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
+      "#48C9B0", "#5DADE2", "#AF7AC5", "#F5B7B1"
+    ]
+  },
+  "reporting": {
+    "outputDir": "./test-results",
+    "generateHTML": true,
+    "includeConsoleLogs": true,
+    "includeNetworkLogs": false,
+    "screenshotQuality": 80
+  }
+}

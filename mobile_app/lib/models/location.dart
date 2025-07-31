@@ -141,8 +141,8 @@ extension LocationExtension on Location {
   /// Create Location from API response
   static Location fromApiMap(Map<String, dynamic> map) {
     return Location(
-      latitude: (map['latitude'] as num).toDouble(),
-      longitude: (map['longitude'] as num).toDouble(),
+      latitude: (map['lat'] ?? map['latitude'] as num).toDouble(),
+      longitude: (map['lng'] ?? map['longitude'] as num).toDouble(),
       timestamp: DateTime.parse(map['timestamp'] as String),
       accuracy: (map['accuracy'] as num?)?.toDouble() ?? 0.0,
       altitude: (map['altitude'] as num?)?.toDouble() ?? 0.0,

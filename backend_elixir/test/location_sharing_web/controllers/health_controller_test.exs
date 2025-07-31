@@ -23,7 +23,6 @@ defmodule LocationSharingWeb.HealthControllerTest do
         "version" => _version,
         "checks" => %{
           "database" => database_check,
-          "redis" => redis_check,
           "application" => app_check
         }
       } = json_response(conn, 200)
@@ -31,7 +30,6 @@ defmodule LocationSharingWeb.HealthControllerTest do
       # Should be healthy in test environment
       assert status in ["healthy", "unhealthy"]
       assert Map.has_key?(database_check, "status")
-      assert Map.has_key?(redis_check, "status")
       assert Map.has_key?(app_check, "status")
     end
 
