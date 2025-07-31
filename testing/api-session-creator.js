@@ -214,10 +214,6 @@ async function createTestScenario(scenarioName, config) {
         participants: []
       };
 
-      // Give time to join before adding participants
-      logInfo('Adding participants in 3 seconds... (you can join now)');
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
       // Add participants to this session
       for (let j = 0; j < scenario.participantsPerSession; j++) {
         try {
