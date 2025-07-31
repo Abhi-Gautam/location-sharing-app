@@ -127,6 +127,17 @@ async function createSession(sessionName, expiresInMinutes = 1440) {
   const result = await makeApiRequest('/sessions', 'POST', sessionData);
   logSuccess(`Session created: ${result.session_id}`);
   
+  // Show join information immediately
+  console.log('');
+  console.log(`${colors.bright}${colors.yellow}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}`);
+  console.log(`${colors.bright}${colors.green}🎯 JOIN THIS SESSION NOW!${colors.reset}`);
+  console.log(`${colors.bright}${colors.yellow}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}`);
+  console.log(`${colors.bright}📋 Session ID: ${colors.green}${result.session_id}${colors.reset}`);
+  console.log(`${colors.bright}🔗 Quick Join: ${colors.blue}http://localhost:52778${colors.reset}`);
+  console.log(`${colors.bright}   Then click "Join Session" and paste the Session ID${colors.reset}`);
+  console.log(`${colors.bright}${colors.yellow}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}`);
+  console.log('');
+  
   return result;
 }
 
@@ -202,6 +213,10 @@ async function createTestScenario(scenarioName, config) {
         joinLink: session.join_link,
         participants: []
       };
+
+      // Give time to join before adding participants
+      logInfo('Adding participants in 3 seconds... (you can join now)');
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       // Add participants to this session
       for (let j = 0; j < scenario.participantsPerSession; j++) {
