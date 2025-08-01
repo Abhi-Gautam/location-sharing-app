@@ -247,42 +247,21 @@ Database-centric approach provides reliable coordination:
 ## Testing
 
 ### API-Based Testing (Recommended)
-The preferred way to test the application is using API-based testing, which creates sessions and participants programmatically:
+The preferred way to test the application is using the consolidated testing commands:
 
 ```bash
-cd testing
+# Run complete test suite (recommended after any changes)
+./run.sh --test
 
-# Run basic API test (2 sessions, 3 participants each)
-./run-api-tests.sh basic
-
-# Run with auto-start services
-./run-api-tests.sh --start-backend --start-flutter basic
-
-# Run stress test
-./run-api-tests.sh stress
+# Run API-based tests specifically
+./run.sh --test-api
 
 # Available scenarios:
-# - basic: 2 sessions with 3 participants each
 # - small: 1 session with 2 participants  
+# - basic: 2 sessions with 3 participants each (default)
 # - medium: 3 sessions with 5 participants each
 # - stress: 5 sessions with 8 participants each
-# - geographic: 3 location-themed sessions
 ```
-
-### UI-Based Visual Testing
-For visual regression testing with automated browsers:
-
-```bash
-cd testing/visual-tests
-
-# Run quick visual test
-./quick-test.sh
-
-# Run full visual test suite
-./run-visual-tests.sh --scenario medium
-```
-
-Note: UI-based testing spawns multiple browser instances and is resource-intensive. Use API-based testing for most scenarios.
 
 ### Location Simulator
 Simulate participant movement for testing:
@@ -309,3 +288,24 @@ The WebSocket service handles Phoenix Channel protocol:
 - Outgoing: `{topic, event, payload, ref}`
 - Incoming: Automatic conversion between `lat/lng` and `latitude/longitude`
 - Join flow: Automatic `phx_join` on connection
+
+## Documentation
+
+### Comprehensive Documentation
+All detailed documentation is organized in the `docs/` folder:
+
+- **[docs/README.md](docs/README.md)**: Complete documentation index
+- **[docs/architecture.md](docs/architecture.md)**: System architecture overview  
+- **[docs/testing/README.md](docs/testing/README.md)**: Comprehensive testing guide
+- **[docs/backend/README.md](docs/backend/README.md)**: Elixir Phoenix backend details
+- **[docs/frontend/README.md](docs/frontend/README.md)**: Flutter mobile app details
+- **[docs/deployment/README.md](docs/deployment/README.md)**: Production deployment guide
+- **[docs/troubleshooting.md](docs/troubleshooting.md)**: Common issues and solutions
+
+### Quick Reference
+For immediate help:
+- **Setup**: `./run.sh --setup`
+- **Start**: `./run.sh --start` 
+- **Test**: `./run.sh --test`
+- **Status**: `./run.sh --status`
+- **Help**: `./run.sh --help`
