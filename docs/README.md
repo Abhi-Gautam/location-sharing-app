@@ -16,18 +16,12 @@ Welcome to the comprehensive documentation for the Location Sharing application 
 
 ### 🧪 Testing
 - [**Testing Guide**](testing/README.md) - Complete testing documentation
-- [**API Testing**](testing/api-testing.md) - API-based testing (recommended)
-- [**Visual Testing**](testing/visual-testing.md) - UI-based browser testing
 
 ### 🚀 Deployment
 - [**Deployment Guide**](deployment/README.md) - Production deployment
-- [**Docker Setup**](deployment/docker.md) - Containerized deployment
-- [**Environment Configuration**](deployment/environment.md) - Configuration reference
 
-### 🔧 Development
-- [**Development Guide**](development.md) - Development workflow and best practices
-- [**Troubleshooting**](troubleshooting.md) - Common issues and solutions
-- [**Contributing**](contributing.md) - How to contribute to the project
+### 🔧 Troubleshooting
+- [**Troubleshooting Guide**](troubleshooting.md) - Common issues and solutions
 
 ## 🎯 Getting Started
 

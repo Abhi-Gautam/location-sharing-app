@@ -202,7 +202,7 @@ flutter test test/specific_test.dart
 ### 4. Performance Issues
 
 #### High CPU Usage
-- **UI Testing**: Stop visual testing if running (`pkill -f "visual-tests"`)
+- **UI Testing**: Stop UI testing if running (`./run.sh --stop`)
 - **Multiple Processes**: Check for duplicate services (`./run.sh --status`)
 - **Browser Instances**: Close unnecessary browser tabs
 

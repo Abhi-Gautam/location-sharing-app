@@ -40,16 +40,6 @@ This includes:
 - ✅ Tests real backend functionality
 - ✅ Low resource usage
 
-### 2. Visual/UI Testing
-
-**Best for**: Visual regression, end-to-end validation
-
-```bash
-# Run UI-based tests (resource intensive)
-./run.sh --test-ui
-```
-
-**Warning**: Spawns multiple browser instances, high resource usage.
 
 ## 🧪 Test Categories
 
@@ -283,10 +273,6 @@ jobs:
 - Memory: < 200MB
 - Network: Minimal localhost traffic
 
-### Resource Usage (Visual Testing)
-- CPU: 50-80% (browser instances)
-- Memory: 1-2GB
-- Network: Higher due to multiple browser sessions
 
 ## 🔗 Related Documentation
 
@@ -301,5 +287,4 @@ jobs:
 1. Use `./run.sh --test` for regular testing
 2. API-based testing is the recommended default
 3. Always run tests after making changes
-4. Visual testing is available but resource-intensive
-5. Test coverage is comprehensive across all components
+4. Test coverage is comprehensive across all components

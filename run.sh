@@ -304,7 +304,6 @@ show_help() {
   echo "  --health             Run health checks on all services"
   echo "  --test               Run API-based tests (recommended)"
   echo "  --test-api           Run API-based tests"
-  echo "  --test-ui            Run UI-based visual tests (resource intensive)"
   echo "  --help               Show this help message"
   echo ""
   echo "Examples:"
@@ -354,23 +353,18 @@ case "$1" in
   --test|--test-api)
     log_info "Running API-based tests..."
     cd testing
-    if [[ -f "run-api-tests.sh" ]]; then
-      ./run-api-tests.sh basic
+    # Run API session creator directly
+    if command -v node &> /dev/null; then
+      node api-session-creator.js basic
     else
-      log_error "run-api-tests.sh not found in testing directory"
+      log_error "Node.js is required for API testing. Please install Node.js."
       exit 1
     fi
     ;;
   --test-ui)
-    log_warning "UI-based testing is resource intensive"
-    log_info "Running UI-based visual tests..."
-    cd testing
-    if [[ -f "run-ui-tests.sh" ]]; then
-      ./run-ui-tests.sh
-    else
-      log_error "run-ui-tests.sh not found in testing directory"
-      exit 1
-    fi
+    log_warning "UI-based testing has been deprecated"
+    log_info "Please use API-based testing instead: ./run.sh --test"
+    log_info "For manual UI testing, start services and join sessions manually"
     ;;
   --help)
     show_help
