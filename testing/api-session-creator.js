@@ -278,10 +278,10 @@ function displayResults(results) {
     log(`5. You should see the other participants listed above on the map`);
     log(`6. Repeat with different sessions to test multiple scenarios`);
     
-    log(`\n${colors.bright}=== LOCATION SIMULATION ===${colors.reset}`);
-    logWarning(`Note: Location simulation requires JWT tokens which are not saved to files for security.`);
-    log(`For now, use manual testing by joining sessions in the Flutter app.`);
-    log(`Session data (without tokens): ${colors.cyan}session-data-${results.scenario}.json${colors.reset}`);
+    log(`\n${colors.bright}=== NEXT STEPS ===${colors.reset}`);
+    log(`🚀 Location simulation will start automatically`);
+    log(`📱 Open Flutter app: ${colors.cyan}http://localhost:52778${colors.reset}`);
+    log(`💾 Session data (without tokens): ${colors.cyan}session-data-${results.scenario}.json${colors.reset}`);
   }
 }
 
@@ -408,11 +408,196 @@ async function main() {
 
       const results = await createTestScenario(scenario, config);
       displayResults(results);
+      
+      // Start location simulation with tokens (secure - no file storage)
+      if (results.sessions.length > 0) {
+        logInfo('\nStarting location simulation...');
+        await startLocationSimulation(results);
+      }
     }
 
   } catch (error) {
     logError(`Failed to create test scenario: ${error.message}`);
     process.exit(1);
+  }
+}
+
+// Location simulation (embedded to avoid storing JWT tokens in files)
+async function startLocationSimulation(results) {
+  const WebSocket = require('ws');
+  
+  // Configuration for location simulation
+  const UPDATE_INTERVAL = 2000; // 2 seconds
+  const WS_BASE_URL = 'ws://localhost:4000/socket/websocket';
+  
+  const simulators = [];
+  let allConnected = false;
+  
+  logInfo(`Creating ${results.summary.totalParticipants} location simulators...`);
+  
+  // Create simulators for each participant
+  for (const session of results.sessions) {
+    for (const participant of session.participants) {
+      if (participant.websocketToken) {
+        const simulator = new LocationSimulator(
+          participant.userId,
+          participant.displayName,
+          session.sessionId,
+          participant.websocketToken
+        );
+        simulators.push(simulator);
+      }
+    }
+  }
+  
+  // Connect all simulators
+  try {
+    await Promise.all(simulators.map(sim => sim.connect()));
+    allConnected = true;
+    logSuccess(`✅ All ${simulators.length} simulators connected successfully!`);
+    
+    log(`\n${colors.bright}=== LOCATION SIMULATION ACTIVE ===${colors.reset}`);
+    log(`🎯 Participants are now moving on the map`);
+    log(`📱 Open Flutter app: ${colors.cyan}http://localhost:52778${colors.reset}`);
+    log(`🔗 Join any session to see them moving in real-time`);
+    log(`⏹️  Press Ctrl+C to stop simulation\n`);
+    
+    // Start location updates for all simulators
+    simulators.forEach(sim => sim.startUpdates());
+    
+    // Keep the process alive
+    process.on('SIGINT', () => {
+      log('\n👋 Shutting down location simulators...');
+      simulators.forEach(sim => sim.disconnect());
+      process.exit(0);
+    });
+    
+    // Keep running indefinitely
+    await new Promise(() => {}); // Never resolves
+    
+  } catch (error) {
+    logError(`Failed to start location simulation: ${error.message}`);
+    simulators.forEach(sim => sim.disconnect());
+  }
+}
+
+// Location Simulator Class
+class LocationSimulator {
+  constructor(userId, displayName, sessionId, websocketToken) {
+    this.userId = userId;
+    this.displayName = displayName;
+    this.sessionId = sessionId;
+    this.websocketToken = websocketToken;
+    this.ws = null;
+    this.updateInterval = null;
+    this.connected = false;
+    
+    // Random starting location around San Francisco
+    this.location = {
+      latitude: 37.7749 + (Math.random() - 0.5) * 0.01,
+      longitude: -122.4194 + (Math.random() - 0.5) * 0.01
+    };
+    
+    // Random movement pattern
+    this.movementPattern = Math.random() < 0.5 ? 'circular' : 'linear';
+    this.speed = 0.0001 + Math.random() * 0.0001; // Degrees per update
+    this.direction = Math.random() * 2 * Math.PI;
+  }
+  
+  async connect() {
+    return new Promise((resolve, reject) => {
+      try {
+        // Build WebSocket URL with authentication
+        const wsUrl = `${WS_BASE_URL}?token=${encodeURIComponent(this.websocketToken)}&session_id=${this.sessionId}&user_id=${this.userId}`;
+        
+        this.ws = new WebSocket(wsUrl);
+        
+        this.ws.on('open', () => {
+          // Join the location channel
+          const joinMessage = {
+            topic: `location:${this.sessionId}`,
+            event: 'phx_join',
+            payload: {},
+            ref: Date.now().toString()
+          };
+          
+          this.ws.send(JSON.stringify(joinMessage));
+          this.connected = true;
+          logSuccess(`🔗 ${this.displayName} connected`);
+          resolve();
+        });
+        
+        this.ws.on('error', (error) => {
+          logError(`❌ ${this.displayName} connection failed: ${error.message}`);
+          reject(error);
+        });
+        
+        this.ws.on('close', () => {
+          this.connected = false;
+          if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+          }
+        });
+        
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+  
+  startUpdates() {
+    if (!this.connected || this.updateInterval) return;
+    
+    this.updateInterval = setInterval(() => {
+      this.updateLocation();
+      this.broadcastLocation();
+    }, UPDATE_INTERVAL);
+  }
+  
+  updateLocation() {
+    if (this.movementPattern === 'circular') {
+      // Circular movement
+      this.direction += 0.1;
+      this.location.latitude += Math.cos(this.direction) * this.speed;
+      this.location.longitude += Math.sin(this.direction) * this.speed;
+    } else {
+      // Linear movement with random direction changes
+      if (Math.random() < 0.1) { // 10% chance to change direction
+        this.direction = Math.random() * 2 * Math.PI;
+      }
+      this.location.latitude += Math.cos(this.direction) * this.speed;
+      this.location.longitude += Math.sin(this.direction) * this.speed;
+    }
+  }
+  
+  broadcastLocation() {
+    if (!this.connected || !this.ws) return;
+    
+    const locationMessage = {
+      topic: `location:${this.sessionId}`,
+      event: 'location_update',
+      payload: {
+        user_id: this.userId,
+        latitude: this.location.latitude,
+        longitude: this.location.longitude,
+        timestamp: new Date().toISOString()
+      },
+      ref: Date.now().toString()
+    };
+    
+    this.ws.send(JSON.stringify(locationMessage));
+  }
+  
+  disconnect() {
+    this.connected = false;
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
+    }
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
   }
 }
 
