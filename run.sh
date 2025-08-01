@@ -302,8 +302,8 @@ show_help() {
   echo "  --restart            Restart all services"
   echo "  --status             Check service status"
   echo "  --health             Run health checks on all services"
-  echo "  --test               Run API-based tests (recommended)"
-  echo "  --test-api           Run API-based tests"
+  echo "  --test               Run complete test suite (backend + frontend + API)"
+  echo "  --test-api [scenario] Create API sessions for manual testing"
   echo "  --help               Show this help message"
   echo ""
   echo "Examples:"
@@ -312,7 +312,8 @@ show_help() {
   echo "  $0 --restart        # Restart everything"
   echo "  $0 --status         # Check what's running"
   echo "  $0 --health         # Test if services are working"
-  echo "  $0 --test           # Run API-based tests"
+  echo "  $0 --test           # Run complete test suite"
+  echo "  $0 --test-api basic # Create test sessions for manual testing"
   echo "  $0 --stop           # Stop everything"
 }
 
@@ -350,12 +351,43 @@ case "$1" in
   --health)
     health_check
     ;;
-  --test|--test-api)
-    log_info "Running API-based tests..."
+  --test)
+    log_info "Running complete test suite..."
+    
+    # Run backend tests
+    log_info "Running Elixir backend tests..."
+    cd backend_elixir
+    if ! mix test; then
+      log_error "Backend tests failed"
+      exit 1
+    fi
+    cd ..
+    
+    # Run frontend tests
+    log_info "Running Flutter frontend tests..."
+    cd mobile_app
+    if ! flutter test; then
+      log_error "Frontend tests failed"
+      exit 1
+    fi
+    cd ..
+    
+    # Run API integration tests
+    log_info "Running API integration tests..."
     cd testing
-    # Run API session creator directly
     if command -v node &> /dev/null; then
       node api-session-creator.js basic
+      log_success "✅ All tests passed!"
+    else
+      log_error "Node.js is required for API testing. Please install Node.js."
+      exit 1
+    fi
+    ;;
+  --test-api)
+    log_info "Running API-based session creator for manual testing..."
+    cd testing
+    if command -v node &> /dev/null; then
+      node api-session-creator.js ${2:-basic}
     else
       log_error "Node.js is required for API testing. Please install Node.js."
       exit 1
