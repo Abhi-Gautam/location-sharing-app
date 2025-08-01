@@ -31,3 +31,7 @@ config :logger, level: :warning
 
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
+
+# Guardian JWT configuration for testing
+config :location_sharing, LocationSharing.Guardian,
+  secret_key: "test-guardian-secret-key-for-testing-only-not-secure"

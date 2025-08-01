@@ -34,9 +34,9 @@ config :location_sharing, LocationSharing.Mailer, adapter: Swoosh.Adapters.Local
 # Metrics configuration removed - using simple telemetry
 
 # Guardian JWT configuration
+# Note: secret_key should be set in runtime.exs from environment variable
 config :location_sharing, LocationSharing.Guardian,
-  issuer: "location_sharing",
-  secret_key: "your-guardian-secret-key-change-in-production"
+  issuer: "location_sharing"
 
 # CORS configuration
 config :cors_plug,

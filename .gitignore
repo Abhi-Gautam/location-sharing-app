@@ -27,5 +27,20 @@ target/
 api_server.log
 websocket_server.log
 
+# Testing directory - SECURITY: Never commit these files
+testing/node_modules/
+testing/package-lock.json
+testing/session-data-*.json      # Contains JWT tokens - security risk!
+testing/screenshots/
+testing/test-results/
+testing/coverage/
+testing/*token*                  # Any files containing tokens
+
+# Flutter logs
+mobile_app/*.log
+
+# Docker
+.env
+
 # Claude Code user settings
 .claude/

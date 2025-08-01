@@ -64,3 +64,7 @@ config :phoenix, :plug_init_mode, :runtime
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# Guardian JWT configuration for development
+config :location_sharing, LocationSharing.Guardian,
+  secret_key: "dev-guardian-secret-key-for-development-only-not-secure"

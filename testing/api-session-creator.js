@@ -279,8 +279,9 @@ function displayResults(results) {
     log(`6. Repeat with different sessions to test multiple scenarios`);
     
     log(`\n${colors.bright}=== LOCATION SIMULATION ===${colors.reset}`);
-    log(`To simulate participant movement and see them on the map:`);
-    log(`${colors.cyan}node location-simulator.js session-data-${results.scenario}.json${colors.reset}`);
+    logWarning(`Note: Location simulation requires JWT tokens which are not saved to files for security.`);
+    log(`For now, use manual testing by joining sessions in the Flutter app.`);
+    log(`Session data (without tokens): ${colors.cyan}session-data-${results.scenario}.json${colors.reset}`);
   }
 }
 
@@ -289,18 +290,32 @@ function saveSessionData(results) {
     const filename = `session-data-${results.scenario}.json`;
     const filepath = path.join(__dirname, filename);
     
-    // Add timestamp for reference
-    const dataToSave = {
+    // SECURITY: Remove JWT tokens before saving to prevent token leakage
+    const sanitizedResults = {
       ...results,
+      sessions: results.sessions.map(session => ({
+        ...session,
+        participants: session.participants.map(participant => ({
+          userId: participant.userId,
+          displayName: participant.displayName
+          // websocketToken is intentionally excluded for security
+        }))
+      }))
+    };
+    
+    // Add timestamp and instructions for reference
+    const dataToSave = {
+      ...sanitizedResults,
       createdAt: new Date().toISOString(),
       simulatorInstructions: {
         command: `node location-simulator.js ${filename}`,
-        description: "Run this command to simulate participant locations and movement"
+        description: "Run this command to simulate participant locations and movement",
+        note: "JWT tokens are not saved to this file for security reasons"
       }
     };
     
     fs.writeFileSync(filepath, JSON.stringify(dataToSave, null, 2));
-    logSuccess(`Session data saved to: ${filename}`);
+    logSuccess(`Session data saved to: ${filename} (tokens excluded for security)`);
   } catch (error) {
     logWarning(`Failed to save session data: ${error.message}`);
   }
